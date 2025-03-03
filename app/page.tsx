@@ -1,5 +1,6 @@
 import React from "react";
 import SensorChart from "./components/sensorChart";
+import { Database } from './database.types'
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient<Database>(
