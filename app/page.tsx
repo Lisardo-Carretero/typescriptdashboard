@@ -1,13 +1,14 @@
 import React from "react";
 import SensorChart from "./components/sensorChart";
 import SensorGauge from "./components/sensorGauge"; // Importamos el componente generico SensorGauge
-import { Database } from './database.types'
+import { Database } from './database.types';
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+);
+
 const Page = async () => {
   const { data: timeseries, error } = await supabase
     .from("timeseries")
@@ -15,7 +16,7 @@ const Page = async () => {
     .order("event_time", { ascending: true });
 
   if (error) {
-    return <p>Error al cargar los datos</p>;
+    return <p className="text-red-500 text-center">Error al cargar los datos</p>;
   }
 
   // Preprocesamos los datos agrupándolos por `device_name` y luego por `sensor_name`
@@ -34,16 +35,16 @@ const Page = async () => {
   const devices = Object.keys(groupedByDeviceAndSensor || {});
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-center">Gráficos de Datos de Sensores</h1>
+    <div className="p-6 space-y-6 bg-blue-200 min-h-screen">
+      <h1 className="text-3xl font-bold text-center text-purple-800 mb-6">MAIN DASHBOARD</h1>
 
       {/* Mostrar los gauges de los sensores de cada dispositivo */}
       {devices.map((device) => {
         const sensors = Object.keys(groupedByDeviceAndSensor[device]);
 
         return (
-          <div key={device} className="space-y-4">
-            <h2 className="text-xl font-semibold text-center">Dispositivo: {device}</h2>
+          <div key={device} className="space-y-6">
+            <h2 className="text-2xl font-semibold text-center text-purple-900">Device: {device}</h2>
 
             {sensors.map((sensor) => {
               // Filtramos los datos para cada sensor
@@ -60,13 +61,13 @@ const Page = async () => {
                 minValue = -100;
                 maxValue = 0; // RSSI típicamente va de -100 a 0
               } else if (sensor === "Temperature") {
-                minValue = -0;
+                minValue = 0;
                 maxValue = 100; // Temperatura en grados Celsius
               }
 
               return (
-                <div key={`${device}-${sensor}`} className="space-y-4">
-                  <h3 className="text-lg font-semibold text-center">{sensor}</h3>
+                <div key={`${device}-${sensor}`} className="space-y-6 bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                  <h3 className="text-3xl font-semibold text-center mb-4 text-purple-900">{sensor}</h3>
 
                   {/* Mostrar el Gauge para cada sensor */}
                   <SensorGauge
@@ -78,7 +79,7 @@ const Page = async () => {
 
                   {/* Mostrar el gráfico de líneas */}
                   <SensorChart
-                    title={`Gráfico de ${sensor}`}
+                    title={`Chart for ${sensor}`}
                     data={sensorData}
                   />
                 </div>

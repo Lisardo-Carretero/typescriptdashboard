@@ -24,15 +24,15 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
   }));
 
   return (
-    <div className="p-4 border rounded-lg shadow-md bg-white">
-      <h2 className="text-lg font-bold text-center mb-2">{title}</h2>
+    <div className="p-6 border rounded-lg shadow-md bg-gray-800 text-blue-600">
+      <h2 className="text-2xl font-semibold text-center mb-4 text-purple-400">{title}</h2>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={formattedData}>
-          <XAxis dataKey="event_time" />
-          <YAxis />
+          <XAxis dataKey="event_time" stroke="#ddd" />
+          <YAxis stroke="#ddd" />
           <Tooltip />
           <Legend />
-          <Line type="monotone" dataKey="value" stroke="#8884d8" />
+          <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={3} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

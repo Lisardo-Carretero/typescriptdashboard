@@ -1,0 +1,33 @@
+/* styles/globals.css */
+
+/* Importación de las bases de Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Aquí puedes agregar tus estilos globales adicionales */
+
+/* Fondo general de la página */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f3f4f6; /* Fondo gris claro */
+}
+
+/* Estilos personalizados */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-8 {
+  margin-top: 2rem;
+}
+
+.mb-8 {
+  margin-bottom: 2rem;
+}
