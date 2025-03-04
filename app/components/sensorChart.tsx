@@ -56,7 +56,8 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "timeseries" },
         (payload) => {
-          setFilteredData((prev) => [...prev, payload.new]);
+          const newData = payload.new as SensorData; // Cast payload.new to SensorData
+          setFilteredData((prev) => [...prev, newData]);
         }
       )
       .subscribe();
@@ -96,18 +97,17 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
         {["1h", "1w", "1m"].map((filter) => (
           <button
             key={filter}
-            className={`px-4 py-2 rounded-lg font-semibold transition duration-300 ${
-              timeFilter === filter
-                ? "bg-[#416D49] text-white shadow-md"
-                : "bg-[#6D4941] text-[#D9BBA0] hover:bg-[#8A625A]"
-            }`}
+            className={`px-4 py-2 rounded-lg font-semibold transition duration-300 ${timeFilter === filter
+              ? "bg-[#416D49] text-white shadow-md"
+              : "bg-[#6D4941] text-[#D9BBA0] hover:bg-[#8A625A]"
+              }`}
             onClick={() => setTimeFilter(filter)}
           >
             {filter === "1h"
               ? "Última Hora"
               : filter === "1w"
-              ? "Última Semana"
-              : "Último Mes"}
+                ? "Última Semana"
+                : "Último Mes"}
           </button>
         ))}
       </div>
