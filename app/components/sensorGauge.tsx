@@ -1,10 +1,13 @@
 "use client";
 
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
+
 interface SensorGaugeProps {
-  value: number;       // El valor actual del sensor
-  minValue: number;    // El valor mínimo posible para ese sensor
-  maxValue: number;    // El valor máximo posible para ese sensor
-  sensorName: string;  // El nombre del sensor (ej. "RSSI", "Temperature")
+  value: number;
+  minValue: number;
+  maxValue: number;
+  sensorName: string;
 }
 
 export default function SensorGauge({
@@ -13,40 +16,30 @@ export default function SensorGauge({
   maxValue,
   sensorName,
 }: SensorGaugeProps) {
-  // Calcular el ángulo de la aguja en función del valor
-  const angle = ((value - minValue) / (maxValue - minValue)) * 180;
+  const percentage = ((value - minValue) / (maxValue - minValue)) * 100;
+  
+  // Gradiente dinámico basado en el porcentaje
+  const getColor = () => {
+    if (percentage < 33) return "#FDE68A"; // Amarillo claro
+    if (percentage < 66) return "#F59E0B"; // Naranja
+    return "#B45309"; // Naranja oscuro
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center h-[250px] bg-gray-800 rounded-lg p-4">
-      <div className="relative w-[200px] h-[100px] overflow-hidden">
-        {/* Fondo del gauge */}
-        <div className="absolute w-full h-[200px] rounded-full border-[10px] border-gray-600 top-0"></div>
-
-        {/* Relleno del gauge (Aguja) */}
-        <div
-          className="absolute w-full h-[200px] rounded-full border-[10px] border-transparent border-t-[#F59E0B] border-r-[#F59E0B] top-0"
-          style={{
-            transform: `rotate(${angle}deg)`,
-            transformOrigin: "center bottom",
-            // Aseguramos que siempre la aguja esté visible y sea del color correcto
-            borderTopColor: "#F59E0B", 
-          }}
-        ></div>
-
-        {/* Punto central */}
-        <div className="absolute bottom-0 left-1/2 w-4 h-4 bg-[#1F2937] rounded-full transform -translate-x-1/2"></div>
+    <div className="flex flex-col items-center space-y-2 bg-gray-800 p-4 rounded-lg">
+      <div className="w-40 h-40">
+        <CircularProgressbar
+          value={percentage}
+          text={`${value}`}
+          styles={buildStyles({
+            textColor: getColor(),
+            pathColor: getColor(),
+            trailColor: "#1F2937",
+            textSize: "16px",
+          })}
+        />
       </div>
-
-      {/* Mostrar el valor */}
-      <div className="mt-4 text-3xl font-semibold text-white">{value}</div>
-      <div className="text-sm text-gray-400">{sensorName}</div>
-
-      {/* Marcadores de la escala */}
-      <div className="flex justify-between w-[200px] mt-2 text-orange-100">
-        <span className="text-xs">{minValue}</span>
-        <span className="text-xs text-orange-300">{(minValue + maxValue) / 2}</span>
-        <span className="text-xs text-orange-900">{maxValue}</span>
-      </div>
+      <p className="text-white text-lg">{sensorName}</p>
     </div>
   );
 }

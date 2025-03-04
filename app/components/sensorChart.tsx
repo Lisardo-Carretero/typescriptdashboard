@@ -1,12 +1,26 @@
 "use client";
 
-import React from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import React, { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { format, subHours, subDays } from "date-fns";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 interface SensorData {
   device_name: string;
   sensor_name: string;
-  pin: string | null;
   value: number;
   event_time: string;
 }
@@ -17,20 +31,89 @@ interface SensorChartProps {
 }
 
 const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
-  // Convertimos los timestamps a un formato más legible
-  const formattedData = data.map((entry) => ({
+  const [filteredData, setFilteredData] = useState<SensorData[]>(data);
+  const [timeFilter, setTimeFilter] = useState("1h");
+
+  useEffect(() => {
+    const now = new Date();
+    let startTime = now;
+
+    if (timeFilter === "1h") startTime = subHours(now, 1);
+    else if (timeFilter === "1w") startTime = subDays(now, 7);
+    else if (timeFilter === "1m") startTime = subDays(now, 30);
+
+    const filtered = data.filter(
+      (entry) => new Date(entry.event_time) >= startTime
+    );
+
+    setFilteredData(filtered);
+  }, [timeFilter, data]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("timeseries_realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "timeseries" },
+        (payload) => {
+          setFilteredData((prev) => [...prev, payload.new]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const formattedData = filteredData.map((entry) => ({
     ...entry,
-    event_time: new Date(entry.event_time).toLocaleTimeString(),
+    event_time: format(new Date(entry.event_time), "HH:mm:ss"),
+    full_date: format(new Date(entry.event_time), "yyyy-MM-dd HH:mm:ss"), // 📌 Formato completo
   }));
 
+  // 📌 Tooltip personalizado para mostrar la fecha completa
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-sky-800 text-white p-2 rounded shadow-lg">
+          <p className="text-sm font-bold">{payload[0].payload.full_date}</p>
+          <p className="text-lg">Value: {payload[0].value}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className="p-6 border rounded-lg shadow-md bg-gray-800 text-blue-600">
-      <h2 className="text-2xl font-semibold text-center mb-4 text-purple-400">{title}</h2>
+    <div className="p-6 border rounded-lg shadow-md bg-gray-800 text-blue-600 w-full">
+      <h2 className="text-2xl font-semibold text-center mb-4 text-purple-400">
+        {title}
+      </h2>
+
+      {/* Botones de Filtro */}
+      <div className="flex justify-center space-x-3 mb-4">
+        {["1h", "1w", "1m"].map((filter) => (
+          <button
+            key={filter}
+            className={`px-4 py-2 rounded ${
+              timeFilter === filter
+                ? "bg-orange-500 text-white"
+                : "bg-gray-700 text-gray-300"
+            }`}
+            onClick={() => setTimeFilter(filter)}
+          >
+            {filter === "1h" ? "Última Hora" : filter === "1w" ? "Última Semana" : "Último Mes"}
+          </button>
+        ))}
+      </div>
+
+      {/* Gráfico */}
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={formattedData}>
+        <LineChart data={formattedData.length ? formattedData : [{ event_time: "", value: 0 }]}>
           <XAxis dataKey="event_time" stroke="#ddd" />
           <YAxis stroke="#ddd" />
-          <Tooltip />
+          <Tooltip content={<CustomTooltip />} />
           <Legend />
           <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={3} dot={false} />
         </LineChart>
