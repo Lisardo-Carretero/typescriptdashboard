@@ -58,14 +58,11 @@ const Page = () => {
   );
 
   return (
-    <div className="p-6 space-y-6 bg-blue-200 min-h-screen">
-      <h1 className="text-3xl font-bold text-center text-purple-800 mb-6">
-        MAIN DASHBOARD
-      </h1>
+    <div className="p-6 space-y-6 bg-gray-100 min-h-screen">
 
       {Object.keys(groupedData).map((device) => (
         <div key={device} className="space-y-6">
-          <h2 className="text-2xl font-semibold text-center text-purple-900">
+          <h2 className="text-2xl font-semibold text-center text-[#416D49]">
             Device: {device}
           </h2>
 
@@ -82,7 +79,7 @@ const Page = () => {
             } else if (sensor === "Temperature") {
               minValue = 0;
               maxValue = 100;
-            }else if (sensor === "Counter") {
+            } else if (sensor === "Counter") {
               minValue = 0;
               maxValue = 999;
             }
@@ -90,9 +87,9 @@ const Page = () => {
             return (
               <div
                 key={`${device}-${sensor}`}
-                className="space-y-6 bg-white p-6 rounded-lg shadow-lg border border-gray-200"
+                className="space-y-6 bg-[#6D4941] p-6 rounded-lg shadow-lg border border-[#49416D] text-white"
               >
-                <h3 className="text-3xl font-semibold text-center mb-4 text-purple-900">
+                <h3 className="text-3xl font-semibold text-center mb-4">
                   {sensor}
                 </h3>
 

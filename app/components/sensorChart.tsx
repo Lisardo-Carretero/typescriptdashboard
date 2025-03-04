@@ -69,14 +69,14 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
   const formattedData = filteredData.map((entry) => ({
     ...entry,
     event_time: format(new Date(entry.event_time), "HH:mm:ss"),
-    full_date: format(new Date(entry.event_time), "yyyy-MM-dd HH:mm:ss"), // 📌 Formato completo
+    full_date: format(new Date(entry.event_time), "yyyy-MM-dd HH:mm:ss"),
   }));
 
-  // 📌 Tooltip personalizado para mostrar la fecha completa
+  // Tooltip personalizado
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-sky-800 text-white p-2 rounded shadow-lg">
+        <div className="bg-[#49416D] text-white p-3 rounded-lg shadow-md">
           <p className="text-sm font-bold">{payload[0].payload.full_date}</p>
           <p className="text-lg">Value: {payload[0].value}</p>
         </div>
@@ -86,8 +86,8 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
   };
 
   return (
-    <div className="p-6 border rounded-lg shadow-md bg-gray-800 text-blue-600 w-full">
-      <h2 className="text-2xl font-semibold text-center mb-4 text-purple-400">
+    <div className="p-6 border rounded-lg shadow-md bg-[#5A413D] text-white w-full">
+      <h2 className="text-2xl font-semibold text-center mb-4 text-[#D9BBA0]">
         {title}
       </h2>
 
@@ -96,26 +96,38 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
         {["1h", "1w", "1m"].map((filter) => (
           <button
             key={filter}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded-lg font-semibold transition duration-300 ${
               timeFilter === filter
-                ? "bg-orange-500 text-white"
-                : "bg-gray-700 text-gray-300"
+                ? "bg-[#416D49] text-white shadow-md"
+                : "bg-[#6D4941] text-[#D9BBA0] hover:bg-[#8A625A]"
             }`}
             onClick={() => setTimeFilter(filter)}
           >
-            {filter === "1h" ? "Última Hora" : filter === "1w" ? "Última Semana" : "Último Mes"}
+            {filter === "1h"
+              ? "Última Hora"
+              : filter === "1w"
+              ? "Última Semana"
+              : "Último Mes"}
           </button>
         ))}
       </div>
 
       {/* Gráfico */}
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={formattedData.length ? formattedData : [{ event_time: "", value: 0 }]}>
-          <XAxis dataKey="event_time" stroke="#ddd" />
-          <YAxis stroke="#ddd" />
+        <LineChart
+          data={formattedData.length ? formattedData : [{ event_time: "", value: 0 }]}
+        >
+          <XAxis dataKey="event_time" stroke="#D9BBA0" />
+          <YAxis stroke="#D9BBA0" />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          <Line type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={3} dot={false} />
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke="#ECAE49"
+            strokeWidth={3}
+            dot={{ fill: "#49416D", r: 4 }}
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>
