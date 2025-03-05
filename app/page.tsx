@@ -137,7 +137,7 @@ const Page = () => {
                     <div className="flex flex-col lg:flex-row items-center justify-center space-y-6 lg:space-y-0 lg:space-x-6">
                       <SensorGauge
                         sensorName={sensor}
-                        value={latestValue}
+                        data={sensorData}
                         minValue={minValue}
                         maxValue={maxValue}
                       />
