@@ -6,6 +6,7 @@ import SensorChart from "./components/sensorChart";
 import SensorGauge from "./components/sensorGauge";
 import { Database } from "./database.types";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import AlertConfig from "./components/alertConfig";
 
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -55,6 +56,18 @@ const Page = () => {
     };
   }, []);
 
+  // Estructura optimizada para AlertConfig
+  const sensorsPerDevice: { [device: string]: string[] } = timeseries.reduce(
+    (acc, curr) => {
+      if (!acc[curr.device_name]) acc[curr.device_name] = [];
+      if (!acc[curr.device_name].includes(curr.sensor_name)) {
+        acc[curr.device_name].push(curr.sensor_name);
+      }
+      return acc;
+    },
+    {} as { [device: string]: string[] }
+  );
+
   const groupedData = timeseries.reduce(
     (acc: { [device: string]: { [sensor: string]: any[] } }, curr) => {
       if (!acc[curr.device_name]) acc[curr.device_name] = {};
@@ -82,8 +95,9 @@ const Page = () => {
             <button
               key={device}
               onClick={() => setSelectedDevice(device)}
-              className={`px-4 py-2 rounded-lg transition duration-300 text-white ${selectedDevice === device ? "bg-[#416D49]" : "bg-[#6D4941] hover:bg-opacity-80"
-                }`}
+              className={`px-4 py-2 rounded-lg transition duration-300 text-white ${
+                selectedDevice === device ? "bg-[#416D49]" : "bg-[#6D4941] hover:bg-opacity-80"
+              }`}
             >
               {device}
             </button>
@@ -93,6 +107,10 @@ const Page = () => {
 
       {/* Espacio para evitar que el contenido quede oculto bajo la barra */}
       <div className="h-28"></div>
+
+      <div>
+        <AlertConfig devices={devices} groupedData={sensorsPerDevice} />
+      </div>
 
       <main className="p-8 space-y-6">
         {selectedDevice && groupedData[selectedDevice] ? (
