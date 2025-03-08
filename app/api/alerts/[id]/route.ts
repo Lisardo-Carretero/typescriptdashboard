@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { Database } from "../../../database.types";
 
-const supabase = createClient(
+const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
@@ -13,10 +14,9 @@ export async function DELETE(
     try {
         const id = params.id;
 
-        // Validate id
-        if (!id || isNaN(parseInt(id))) {
+        if (!id) {
             return NextResponse.json(
-                { error: 'Invalid alert ID' },
+                { error: 'Alert ID is required' },
                 { status: 400 }
             );
         }
@@ -34,7 +34,10 @@ export async function DELETE(
             );
         }
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json(
+            { message: 'Alert deleted successfully' },
+            { status: 200 }
+        );
     } catch (error) {
         console.error('Error:', error);
         return NextResponse.json(

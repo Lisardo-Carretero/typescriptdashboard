@@ -1,3 +1,4 @@
+"use client";
 // Añadir al inicio del archivo
 import { createClient } from "@supabase/supabase-js";
 import { Database } from "../database.types";
@@ -7,7 +8,6 @@ const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-"use client";
 
 import { useEffect, useState } from "react";
 
