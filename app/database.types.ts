@@ -58,6 +58,36 @@ export type Database = {
         }
         Relationships: []
       }
+      alerts: {
+        Row: {
+          id: number
+          device_name: string
+          sensor_name: string
+          condition: string
+          threshold: number
+          color: string
+          created_at?: string
+        }
+        Insert: {
+          id?: number
+          device_name: string
+          sensor_name: string
+          condition: string
+          threshold: number
+          color: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          device_name?: string
+          sensor_name?: string
+          condition?: string
+          threshold?: number
+          color?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       countries_view: {

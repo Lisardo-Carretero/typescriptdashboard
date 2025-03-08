@@ -25,6 +25,24 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
     const [color, setColor] = useState<string>("#ff0000"); // Rojo por defecto
     const [alerts, setAlerts] = useState<Alert[]>([]);
 
+    // Añadir después de los useStates
+    useEffect(() => {
+        async function fetchAlerts() {
+            try {
+                const response = await fetch('/api/alerts');
+                if (!response.ok) {
+                    throw new Error('Error al cargar alertas');
+                }
+                const alertsData = await response.json();
+                setAlerts(alertsData);
+            } catch (error) {
+                console.error("Error cargando alertas:", error);
+            }
+        }
+
+        fetchAlerts();
+    }, []);
+
     // Actualizar sensores cuando se seleccione un dispositivo
     useEffect(() => {
         if (selectedDevice) {
@@ -34,19 +52,24 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
         }
     }, [selectedDevice, groupedData]);
 
-    function saveAlert() {
-        if (!selectedDevice || !selectedSensor) return;
+    // Reemplazar la función saveAlert existente
+    async function saveAlert() {
+        if (!selectedDevice) {
+            alert("⚠️ Debes seleccionar un dispositivo.");
+            return;
+        }
 
-        const newAlert: Alert = {
-            device_name: selectedDevice,
-            sensor_name: selectedSensor,
-            condition,
-            threshold,
-            color,
-        };
+        if (!selectedSensor) {
+            alert("⚠️ Debes seleccionar un sensor.");
+            return;
+        }
 
-        setAlerts([...alerts, newAlert]);
-        alert("⚠️ Alerta creada con éxito.");
+        if (isNaN(threshold)) {
+            alert("⚠️ El umbral debe ser un número válido.");
+            return;
+        }
+
+        // Resto del código existente...
     }
 
     return (
