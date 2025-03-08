@@ -95,9 +95,8 @@ const Page = () => {
             <button
               key={device}
               onClick={() => setSelectedDevice(device)}
-              className={`px-4 py-2 rounded-lg transition duration-300 text-white ${
-                selectedDevice === device ? "bg-[#416D49]" : "bg-[#6D4941] hover:bg-opacity-80"
-              }`}
+              className={`px-4 py-2 rounded-lg transition duration-300 text-white ${selectedDevice === device ? "bg-[#416D49]" : "bg-[#6D4941] hover:bg-opacity-80"
+                }`}
             >
               {device}
             </button>
