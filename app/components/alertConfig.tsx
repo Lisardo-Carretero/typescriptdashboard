@@ -1,3 +1,12 @@
+// Añadir al inicio del archivo
+import { createClient } from "@supabase/supabase-js";
+import { Database } from "../database.types";
+
+const supabase = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -43,6 +52,24 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
         fetchAlerts();
     }, []);
 
+    useEffect(() => {
+        const channel = supabase
+            .channel("alerts_changes")
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "alerts" },
+                (payload) => {
+                    // Refrescar todas las alertas cuando hay cambios
+                    fetchAlerts();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
     // Actualizar sensores cuando se seleccione un dispositivo
     useEffect(() => {
         if (selectedDevice) {
@@ -69,7 +96,61 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
             return;
         }
 
-        // Resto del código existente...
+        const newAlert: Alert = {
+            device_name: selectedDevice,
+            sensor_name: selectedSensor,
+            condition,
+            threshold,
+            color,
+        };
+
+        try {
+            const response = await fetch('/api/alerts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newAlert),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error al guardar la alerta');
+            }
+
+            const savedAlert = await response.json();
+            setAlerts([...alerts, savedAlert]);
+
+            // Limpiar el formulario
+            setSelectedSensor(null);
+            setThreshold(0);
+            setColor("#ff0000");
+
+            alert("✅ Alerta creada con éxito!");
+        } catch (error) {
+            console.error("Error guardando alerta:", error);
+            alert(`❌ Error al guardar la alerta: ${error.message}`);
+        }
+    }
+
+    // Añadir función para eliminar alertas
+    async function deleteAlert(id: number) {
+        try {
+            const response = await fetch(`/api/alerts/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al eliminar la alerta');
+            }
+
+            // Actualizar la lista de alertas eliminando la que se borró
+            setAlerts(alerts.filter(alert => alert.id !== id));
+            alert("✅ Alerta eliminada correctamente");
+        } catch (error) {
+            console.error("Error eliminando alerta:", error);
+            alert(`❌ Error: ${error.message}`);
+        }
     }
 
     return (
@@ -150,15 +231,23 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
             {/* Listado de alertas */}
             <h3 className="mt-6 text-lg font-bold">Alertas Configuradas:</h3>
             <ul className="mt-2 space-y-2">
-                {alerts.map((alert, index) => (
-                    <li key={index} className="bg-gray-700 p-2 rounded flex justify-between items-center">
+                {alerts.map((alert) => (
+                    <li key={alert.id} className="bg-gray-700 p-2 rounded flex justify-between items-center">
                         <span>
                             📡 {alert.device_name} - {alert.sensor_name} {alert.condition} {alert.threshold}
                         </span>
-                        <span
-                            className="w-6 h-6 rounded-full"
-                            style={{ backgroundColor: alert.color }}
-                        />
+                        <div className="flex items-center gap-2">
+                            <span
+                                className="w-6 h-6 rounded-full"
+                                style={{ backgroundColor: alert.color }}
+                            />
+                            <button
+                                onClick={() => deleteAlert(alert.id!)}
+                                className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
+                            >
+                                ❌
+                            </button>
+                        </div>
                     </li>
                 ))}
             </ul>
