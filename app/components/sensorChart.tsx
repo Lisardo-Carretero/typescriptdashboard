@@ -87,7 +87,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
   };
 
   return (
-    <div className="p-6 border rounded-lg shadow-md bg-[#5A413D] text-white w-full">
+    <div className="p-6 border border-[#D9BBA0] rounded-lg shadow-md bg-[#5A413D] text-white w-full">
       <h2 className="text-2xl font-semibold text-center mb-4 text-[#D9BBA0]">
         {title}
       </h2>
