@@ -133,9 +133,9 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
             setAlerts([...alerts, savedAlert]);
             closeModal();
             alert("✅ Alerta creada con éxito!");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error guardando alerta:", error);
-            alert(`❌ Error al guardar la alerta: ${error.message}`);
+            alert(`❌ Error al guardar la alerta: ${error?.message || 'Error desconocido'}`);
         }
     }
 
@@ -151,9 +151,9 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
             setAlerts(alerts.filter(alert => alert.id !== id));
             alert("✅ Alerta eliminada correctamente");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error eliminando alerta:", error);
-            alert(`❌ Error: ${error.message}`);
+            alert(`❌ Error: ${error?.message || 'Error desconocido'}`);
         }
     }
 
@@ -211,7 +211,10 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
             {/* Modal de creación de alertas */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
-                    <div className="bg-[#49416D] rounded-lg shadow-2xl w-full max-w-md border border-[#6D4941] animate-fadeIn">
+                    <div
+                        className="bg-[#49416D] rounded-lg shadow-2xl w-full max-w-md border border-[#6D4941] animate-fadeIn"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold">Nueva Alerta</h3>
@@ -300,13 +303,13 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                             <div className="flex gap-3">
                                 <button
                                     onClick={closeModal}
-                                    className="flex-1 bg-red-600 hover:bg-red-800 text-white py-2 px-4 rounded transition-colors"
+                                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={saveAlert}
-                                    className="flex-1 bg-green-600 hover:bg-green-800 text-white py-2 px-4 rounded transition-colors"
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors"
                                 >
                                     Guardar
                                 </button>
