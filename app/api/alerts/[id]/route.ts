@@ -9,7 +9,7 @@ const supabase = createClient<Database>(
 
 export async function DELETE(
     request: Request,
-    { params }: { params: { id: number } }
+    { params }: { params: { id: string } }
 ) {
     try {
         const id = params.id;
@@ -24,7 +24,7 @@ export async function DELETE(
         const { error } = await supabase
             .from('alerts')
             .delete()
-            .eq('id', id);
+            .eq('id', parseInt(id, 10));  // Convertir string a number para la consulta
 
         if (error) {
             console.error('Database error:', error);
