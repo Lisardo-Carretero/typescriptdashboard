@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Database } from "../../../database.types";
 
@@ -8,11 +8,11 @@ const supabase = createClient<Database>(
 );
 
 export async function DELETE(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    { params }: { params: Promise<{ id: number }> },
 ) {
     try {
-        const id = params.id;
+        const id = (await params).id;
 
         if (!id) {
             return NextResponse.json(

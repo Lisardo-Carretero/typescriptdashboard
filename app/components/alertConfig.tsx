@@ -1,15 +1,13 @@
 "use client";
-// Añadir al inicio del archivo
 import { createClient } from "@supabase/supabase-js";
 import { Database } from "../database.types";
+import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 
 const supabase = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-
-
-import { useEffect, useState } from "react";
 
 interface Alert {
     id?: number;
@@ -33,22 +31,22 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
     const [threshold, setThreshold] = useState<number>(0);
     const [color, setColor] = useState<string>("#ff0000"); // Rojo por defecto
     const [alerts, setAlerts] = useState<Alert[]>([]);
+    const [showModal, setShowModal] = useState<boolean>(false);
 
-    // Añadir después de los useStates
-    useEffect(() => {
-        async function fetchAlerts() {
-            try {
-                const response = await fetch('/api/alerts');
-                if (!response.ok) {
-                    throw new Error('Error al cargar alertas');
-                }
-                const alertsData = await response.json();
-                setAlerts(alertsData);
-            } catch (error) {
-                console.error("Error cargando alertas:", error);
+    async function fetchAlerts() {
+        try {
+            const response = await fetch('/api/alerts');
+            if (!response.ok) {
+                throw new Error('Error al cargar alertas');
             }
+            const alertsData = await response.json();
+            setAlerts(alertsData);
+        } catch (error) {
+            console.error("Error cargando alertas:", error);
         }
+    }
 
+    useEffect(() => {
         fetchAlerts();
     }, []);
 
@@ -58,8 +56,7 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "alerts" },
-                (payload) => {
-                    // Refrescar todas las alertas cuando hay cambios
+                () => {
                     fetchAlerts();
                 }
             )
@@ -72,14 +69,28 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
     // Actualizar sensores cuando se seleccione un dispositivo
     useEffect(() => {
-        if (selectedDevice) {
-            setSensors(Object.keys(groupedData[selectedDevice] || {}));
+        if (selectedDevice && groupedData[selectedDevice]) {
+            setSensors(groupedData[selectedDevice]);
         } else {
             setSensors([]);
         }
     }, [selectedDevice, groupedData]);
 
-    // Reemplazar la función saveAlert existente
+    // Función para resetear el formulario
+    const resetForm = () => {
+        setSelectedDevice(null);
+        setSelectedSensor(null);
+        setCondition(">");
+        setThreshold(0);
+        setColor("#ff0000");
+    };
+
+    // Función para cerrar el modal
+    const closeModal = () => {
+        setShowModal(false);
+        resetForm();
+    };
+
     async function saveAlert() {
         if (!selectedDevice) {
             alert("⚠️ Debes seleccionar un dispositivo.");
@@ -120,20 +131,14 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
             const savedAlert = await response.json();
             setAlerts([...alerts, savedAlert]);
-
-            // Limpiar el formulario
-            setSelectedSensor(null);
-            setThreshold(0);
-            setColor("#ff0000");
-
+            closeModal();
             alert("✅ Alerta creada con éxito!");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error guardando alerta:", error);
-            alert(`❌ Error al guardar la alerta: ${error.message}`);
+            alert(`❌ Error al guardar la alerta: ${error?.message || 'Error desconocido'}`);
         }
     }
 
-    // Añadir función para eliminar alertas
     async function deleteAlert(id: number) {
         try {
             const response = await fetch(`/api/alerts/${id}`, {
@@ -144,113 +149,175 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                 throw new Error('Error al eliminar la alerta');
             }
 
-            // Actualizar la lista de alertas eliminando la que se borró
             setAlerts(alerts.filter(alert => alert.id !== id));
             alert("✅ Alerta eliminada correctamente");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error eliminando alerta:", error);
-            alert(`❌ Error: ${error.message}`);
+            alert(`❌ Error: ${error?.message || 'Error desconocido'}`);
         }
     }
 
     return (
         <div className="p-6 bg-[#49416D] rounded-lg shadow-md text-white">
-            <h2 className="text-xl font-bold mb-4">Configurar Alerta</h2>
-
-            {/* Selección de Dispositivo */}
-            <label className="block mb-2">Dispositivo</label>
-            <select
-                className="w-full p-2 rounded bg-gray-800 text-white"
-                value={selectedDevice || ""}
-                onChange={(e) => setSelectedDevice(e.target.value)}
-            >
-                <option value="">Seleccione un dispositivo</option>
-                {devices.map((device) => (
-                    <option key={device} value={device}>
-                        {device}
-                    </option>
-                ))}
-            </select>
-
-            {/* Selección de Sensor */}
-            <label className="block mt-4 mb-2">Sensor</label>
-            <select
-                className="w-full p-2 rounded bg-gray-800 text-white"
-                value={selectedSensor || ""}
-                onChange={(e) => setSelectedSensor(e.target.value)}
-                disabled={!selectedDevice}
-            >
-                <option value="">Seleccione un sensor</option>
-                {sensors.map((sensor) => (
-                    <option key={sensor} value={sensor}>
-                        {sensor}
-                    </option>
-                ))}
-            </select>
-
-            {/* Condición */}
-            <label className="block mt-4 mb-2">Condición</label>
-            <select
-                className="w-full p-2 rounded bg-gray-800 text-white"
-                value={condition}
-                onChange={(e) => setCondition(e.target.value as "<" | ">" | "<=" | ">=" | "=")}
-            >
-                <option value=">">Mayor que</option>
-                <option value="<">Menor que</option>
-                <option value=">=">Mayor o igual</option>
-                <option value="<=">Menor o igual</option>
-                <option value="=">Igual a</option>
-            </select>
-
-            {/* Valor Umbral */}
-            <label className="block mt-4 mb-2">Valor Umbral</label>
-            <input
-                type="number"
-                className="w-full p-2 rounded bg-gray-800 text-white"
-                value={threshold}
-                onChange={(e) => setThreshold(parseFloat(e.target.value))}
-            />
-
-            {/* Color */}
-            <label className="block mt-4 mb-2">Color de Alerta</label>
-            <input
-                type="color"
-                className="w-full h-10"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-            />
-
-            {/* Botón de Guardar */}
-            <button
-                className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white p-2 rounded"
-                onClick={saveAlert}
-            >
-                Guardar Alerta
-            </button>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Alertas Configuradas</h2>
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors shadow-md flex items-center"
+                >
+                    <span className="mr-1">+</span> Nueva Alerta
+                </button>
+            </div>
 
             {/* Listado de alertas */}
-            <h3 className="mt-6 text-lg font-bold">Alertas Configuradas:</h3>
-            <ul className="mt-2 space-y-2">
-                {alerts.map((alert) => (
-                    <li key={alert.id} className="bg-gray-700 p-2 rounded flex justify-between items-center">
-                        <span>
-                            📡 {alert.device_name} - {alert.sensor_name} {alert.condition} {alert.threshold}
-                        </span>
-                        <div className="flex items-center gap-2">
-                            <span
-                                className="w-6 h-6 rounded-full"
-                                style={{ backgroundColor: alert.color }}
-                            />
-                            <button
-                                onClick={() => deleteAlert(alert.id!)}
-                                className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm"
+            <div className="mt-4">
+                {alerts.length === 0 ? (
+                    <p className="text-center text-gray-300 py-4">No hay alertas configuradas</p>
+                ) : (
+                    <ul className="space-y-2">
+                        {alerts.map((alert) => (
+                            <li
+                                key={alert.id}
+                                className="bg-gray-700 p-3 rounded-lg flex justify-between items-center shadow-md border border-gray-600"
                             >
-                                ❌
-                            </button>
+                                <span className="flex items-center">
+                                    <span
+                                        className="w-4 h-4 rounded-full mr-3"
+                                        style={{ backgroundColor: alert.color }}
+                                    />
+                                    <span className="font-medium">{alert.device_name}</span>
+                                    <span className="mx-2 text-gray-300">•</span>
+                                    <span>{alert.sensor_name}</span>
+                                    <span className="mx-2 text-gray-300 font-mono">{alert.condition}</span>
+                                    <span>{alert.threshold}</span>
+                                </span>
+                                <button
+                                    onClick={() => deleteAlert(alert.id!)}
+                                    className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-md transition-colors"
+                                    title="Eliminar alerta"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M3 6h18"></path>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            {/* Modal de creación de alertas */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+                    <div
+                        className="bg-[#49416D] rounded-lg shadow-2xl w-full max-w-md border border-[#6D4941] animate-fadeIn"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold">Nueva Alerta</h3>
+                                <button
+                                    onClick={closeModal}
+                                    className="text-gray-300 hover:text-white"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            {/* Selección de Dispositivo */}
+                            <div className="mb-4">
+                                <label className="block mb-1 font-medium">Dispositivo</label>
+                                <select
+                                    className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                    value={selectedDevice || ""}
+                                    onChange={(e) => setSelectedDevice(e.target.value)}
+                                >
+                                    <option value="">Seleccione un dispositivo</option>
+                                    {devices.map((device) => (
+                                        <option key={device} value={device}>
+                                            {device}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Selección de Sensor */}
+                            <div className="mb-4">
+                                <label className="block mb-1 font-medium">Sensor</label>
+                                <select
+                                    className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                    value={selectedSensor || ""}
+                                    onChange={(e) => setSelectedSensor(e.target.value)}
+                                    disabled={!selectedDevice}
+                                >
+                                    <option value="">Seleccione un sensor</option>
+                                    {sensors.map((sensor) => (
+                                        <option key={sensor} value={sensor}>
+                                            {sensor}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Condición */}
+                            <div className="mb-4">
+                                <label className="block mb-1 font-medium">Condición</label>
+                                <select
+                                    className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                    value={condition}
+                                    onChange={(e) => setCondition(e.target.value as "<" | ">" | "<=" | ">=" | "=")}
+                                >
+                                    <option value=">">Mayor que</option>
+                                    <option value="<">Menor que</option>
+                                    <option value=">=">Mayor o igual</option>
+                                    <option value="<=">Menor o igual</option>
+                                    <option value="=">Igual a</option>
+                                </select>
+                            </div>
+
+                            {/* Valor Umbral */}
+                            <div className="mb-4">
+                                <label className="block mb-1 font-medium">Valor Umbral</label>
+                                <input
+                                    type="number"
+                                    className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                    value={threshold}
+                                    onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                                />
+                            </div>
+
+                            {/* Color */}
+                            <div className="mb-6">
+                                <label className="block mb-1 font-medium">Color de Alerta</label>
+                                <input
+                                    type="color"
+                                    className="w-full h-10 rounded cursor-pointer"
+                                    value={color}
+                                    onChange={(e) => setColor(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Botones de acción */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={closeModal}
+                                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={saveAlert}
+                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
                         </div>
-                    </li>
-                ))}
-            </ul>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
