@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { User } from "lucide-react";
@@ -13,6 +13,8 @@ const supabase = createClient(
 const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
     const [user, setUser] = useState<any>(null);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const buttonRef = useRef<HTMLButtonElement>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -35,16 +37,50 @@ const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
         setMenuOpen(false);
     };
 
+    const toggleMenu = () => {
+        if (!menuOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setMenuPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.right - 128, // Ancho del menú (w-32 = 8rem = 128px)
+            });
+        }
+        setMenuOpen(!menuOpen);
+    };
+
+    // Cierra el menú cuando se hace clic fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuOpen && buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
+                setMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [menuOpen]);
+
     return (
         <div className="relative">
             <button
+                ref={buttonRef}
                 className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-300 bg-[#6D4941] flex items-center justify-center text-white hover:bg-[#8A625A] transition-colors"
-                onClick={() => setMenuOpen(!menuOpen)}
+                onClick={toggleMenu}
             >
                 <User size={24} />
             </button>
+
+            {/* Portal para el menú flotante */}
             {menuOpen && (
-                <div className="absolute right-0 mt-2 w-32 bg-[#49416D] shadow-lg rounded-lg py-2 border border-[#D9BBA0]">
+                <div
+                    className="fixed z-50 w-32 bg-[#49416D] shadow-lg rounded-lg py-2 border border-[#D9BBA0]"
+                    style={{
+                        top: `${menuPosition.top}px`,
+                        left: `${menuPosition.left}px`,
+                    }}
+                >
                     {user ? (
                         <button
                             onClick={handleLogout}

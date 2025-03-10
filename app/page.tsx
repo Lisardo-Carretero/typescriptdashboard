@@ -91,24 +91,50 @@ const Page = () => {
 
   return (
     <div className="min-h-screen bg-[#2E2A3B] text-white">
-      {/* Barra de dispositivos fija con botón de usuario */}
-      <header className="bg-[#49416D] p-4 shadow-md fixed w-full top-0 z-50">
-        <div className="mt-4 flex justify-center space-x-4 overflow-x-auto">
-          {devices.map((device) => (
-            <button
-              key={device}
-              onClick={() => setSelectedDevice(device)}
-              className={`px-4 py-2 rounded-lg transition duration-300 text-white ${selectedDevice === device ? "bg-[#416D49]" : "bg-[#6D4941] hover:bg-opacity-80"
-                }`}
+      {/* Header rediseñado con disposición más compacta y profesional */}
+      <header className="bg-[#49416D] shadow-md fixed w-full top-0 z-40">
+        <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
+          {/* Logo y título en el lado izquierdo */}
+          <div className="flex items-center space-x-3">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-7 h-7 text-[#D9BBA0]"
             >
-              {device}
-            </button>
-          ))}
-          <UserButton onLoginClick={() => setShowLoginModal(true)} />
+              <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z" />
+            </svg>
+            <h1 className="text-xl font-bold text-[#D9BBA0]">IoT Dashboard</h1>
+          </div>
+
+          <div className="order-3 md:order-2 w-full md:w-auto mt-2 md:mt-0 overflow-x-auto flex-grow md:flex-grow-0 md:max-w-md lg:max-w-xl xl:max-w-2xl py-1">
+            {devices.length > 0 && (
+              <div className="flex items-center space-x-1 md:space-x-2 justify-start md:justify-center">
+                <span className="text-sm font-semibold text-gray-300 whitespace-nowrap mr-2">Devices:</span>
+                <div className="flex space-x-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent pb-1">
+                  {devices.map((device) => (
+                    <button
+                      key={device}
+                      onClick={() => setSelectedDevice(device)}
+                      className={`px-3 py-1 text-sm rounded-lg transition-all duration-300 whitespace-nowrap ${selectedDevice === device
+                        ? "bg-[#416D49] text-white font-medium scale-105 shadow-lg"
+                        : "bg-[#6D4941] bg-opacity-70 hover:bg-opacity-100 text-gray-200"
+                        }`}
+                    >
+                      {device}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="order-2 md:order-3">
+            <UserButton onLoginClick={() => setShowLoginModal(true)} />
+          </div>
         </div>
       </header>
 
-      {/* Modal de login */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
           onClick={() => setShowLoginModal(false)}>
@@ -118,8 +144,7 @@ const Page = () => {
         </div>
       )}
 
-      {/* Espacio para evitar que el contenido quede oculto bajo la barra */}
-      <div className="h-28"></div>
+      <div className="h-20"></div>
 
       <div className="p-4">
         <AlertConfig devices={devices} groupedData={sensorsPerDevice} />
