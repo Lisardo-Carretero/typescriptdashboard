@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { format, subHours, subDays, isBefore, isEqual } from "date-fns";
+import { format, subHours, subDays, isBefore, isEqual, parseISO } from "date-fns";
 import {
   LineChart,
   Line,
@@ -42,10 +42,15 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     else if (timeFilter === "1w") startTime = subDays(now, 7);
     else if (timeFilter === "1m") startTime = subDays(now, 30);
 
-    // Filtrar datos dentro del rango de tiempo seleccionado
-    const filtered = data.filter((entry) => new Date(entry.event_time) >= startTime);
+    // Ordenar los datos por fecha para asegurar que se leen correctamente
+    const sortedData = [...data].sort((a, b) =>
+      new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+    );
 
-    // Asegurar continuidad de datos insertando valores 0 si faltan timestamps
+    // Filtrar solo los datos que caen en el rango de tiempo seleccionado
+    const filtered = sortedData.filter((entry) => new Date(entry.event_time) >= startTime);
+
+    // Asegurar que se rellenan los datos faltantes sin perder los datos existentes
     const completeData = fillMissingData(filtered, startTime, now, timeFilter);
     setFilteredData(completeData);
   }, [timeFilter, data]);
@@ -58,7 +63,9 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
         { event: "INSERT", schema: "public", table: "timeseries" },
         (payload) => {
           const newData = payload.new as SensorData;
-          setFilteredData((prev) => [...prev, newData]);
+          setFilteredData((prev) => [...prev, newData].sort((a, b) =>
+            new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
+          ));
         }
       )
       .subscribe();
@@ -68,19 +75,22 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     };
   }, []);
 
-  // Función para asegurar que haya datos en cada timestamp
+  // Función mejorada para rellenar datos faltantes sin perder los existentes
   const fillMissingData = (data: SensorData[], start: Date, end: Date, filter: string) => {
     const interval = filter === "1h" ? 5 * 60 * 1000 : 60 * 60 * 1000; // 5 min para 1h, 1h para 1w y 1m
     const filledData: SensorData[] = [];
     let currentTime = new Date(start);
 
     while (isBefore(currentTime, end) || isEqual(currentTime, end)) {
-      const existingData = data.find(
-        (entry) => format(new Date(entry.event_time), "yyyy-MM-dd HH:mm") === format(currentTime, "yyyy-MM-dd HH:mm")
+      const closestData = data.find(
+        (entry) => {
+          const entryTime = parseISO(entry.event_time); // Convertir el timestamp de la BD a Date
+          return format(entryTime, "yyyy-MM-dd HH:mm") === format(currentTime, "yyyy-MM-dd HH:mm");
+        }
       );
 
-      if (existingData) {
-        filledData.push(existingData);
+      if (closestData) {
+        filledData.push(closestData);
       } else {
         filledData.push({
           device_name: "N/A",
