@@ -33,7 +33,7 @@ export const subscribeToTimeseries = (eventType: "INSERT" | "UPDATE" | "DELETE" 
       (payload) => callback(payload)
     )
     .subscribe((status) => {
-      console.log(`Supabase realtime status: ${status}`);
+      //console.log(`Supabase realtime status: ${status}`);
     });
 
   return () => {
@@ -54,7 +54,7 @@ export const subscribeToAlerts = (eventType: "INSERT" | "UPDATE" | "DELETE" | "*
       (payload) => callback(payload)
     )
     .subscribe((status) => {
-      console.log(`Alerts subscription status: ${status}`);
+      //console.log(`Alerts subscription status: ${status}`);
     });
 
   return () => {

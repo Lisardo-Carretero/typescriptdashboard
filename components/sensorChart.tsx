@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import supabase, { subscribeToTimeseries } from "../lib/supabaseClient"; // Import supabase and subscribeToTimeseries
 import { format, subHours, subDays, differenceInSeconds } from "date-fns";
 import {
   LineChart,
@@ -23,15 +22,17 @@ interface SensorData {
 }
 
 interface SensorChartProps {
+  title: string;
   device: string;
+  sensor: string;
 }
 
-const SensorChart: React.FC<SensorChartProps> = ({ device }) => {
+const SensorChart: React.FC<SensorChartProps> = ({ title, device, sensor }) => {
   const [data, setData] = useState<SensorData[]>([]);
   const [filteredData, setFilteredData] = useState<SensorData[]>([]);
   const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
 
-  const fetchData = async (device: string, timeFilter: "1h" | "1w" | "1m") => {
+  const fetchData = async (device: string, sensor: string, timeFilter: "1h" | "1w" | "1m") => {
     const now = new Date();
     let startTime = now;
 
@@ -39,15 +40,17 @@ const SensorChart: React.FC<SensorChartProps> = ({ device }) => {
     else if (timeFilter === "1w") startTime = subDays(now, 7);
     else if (timeFilter === "1m") startTime = subDays(now, 30);
 
-    const { data, error } = await supabase
-      .from("timeseries")
-      .select("*")
-      .eq("device_name", device)
-      .gte("event_time", startTime.toISOString())
-      .order("event_time", { ascending: true });
+    const response = await fetch(`/api/data/${device}/${sensor}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_start_time: startTime.toISOString() }),
+    });
+    const data = await response.json();
 
-    if (error) {
-      console.error("Error fetching data:", error);
+    if (!response.ok) {
+      console.error("Error fetching data:", data.error);
       return;
     }
 
@@ -56,19 +59,8 @@ const SensorChart: React.FC<SensorChartProps> = ({ device }) => {
   };
 
   useEffect(() => {
-    fetchData(device, timeFilter);
-  }, [device, timeFilter]);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToTimeseries("INSERT", (payload) => {
-      const newData = payload.new as SensorData;
-      setFilteredData((prev) => optimizeIntervals([...prev, newData]));
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+    fetchData(device, sensor, timeFilter);
+  }, [device, sensor, timeFilter]);
 
   // Función para ajustar los intervalos dinámicamente
   const optimizeIntervals = (data: SensorData[]) => {
@@ -116,7 +108,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ device }) => {
   return (
     <div className="p-6 border border-[#D9BBA0] rounded-lg shadow-md bg-[#5A413D] text-white w-full">
       <h2 className="text-2xl font-semibold text-center mb-4 text-[#D9BBA0]">
-        Chart for {device}
+        {title}
       </h2>
 
       {/* Botones de Filtro */}

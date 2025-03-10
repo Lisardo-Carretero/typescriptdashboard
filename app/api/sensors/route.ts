@@ -1,22 +1,17 @@
 import { NextResponse } from "next/server";
 import supabase from "../../../lib/supabaseClient";
 
-export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const deviceName = searchParams.get('device_name');
+export async function POST(request: Request) {
+    const { p_device_name } = await request.json();
 
-    if (!deviceName) {
-        return NextResponse.json({ error: "device_name is required" }, { status: 400 });
-    }
-
-    const { data, error } = await supabase
-        .from('timeseries')
-        .select('sensor_name')
-        .eq('device_name', deviceName);
+    let { data, error } = await supabase
+        .rpc('sensors_per_device', {
+            p_device_name
+        });
 
     if (error) {
         return NextResponse.json({ error: "Error fetching sensors" }, { status: 500 });
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(data, { status: 200 });
 }

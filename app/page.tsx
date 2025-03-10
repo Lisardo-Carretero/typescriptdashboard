@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { ChevronDown, CheckCircle2 } from "lucide-react";
+import { ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 
 import SensorChart from "../components/sensorChart";
 import SensorGauge from "../components/sensorGauge";
-import supabase from "../lib/supabaseClient";
 
 import AlertConfig from "../components/alertConfig";
 import UserButton from "../components/userButton";
 import LoginForm from "../components/loginForm";
 
+const devicePlaceholder = process.env.NEXT_PUBLIC_PLACEHOLDER_DEVICE;
+
 const Page = () => {
-  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<string | null>(devicePlaceholder);
   const [devices, setDevices] = useState<string[]>([]);
   const [collapsedSensors, setCollapsedSensors] = useState<{ [key: string]: boolean }>({});
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
@@ -32,13 +33,18 @@ const Page = () => {
 
     // Asegúrate de que data sea un array de strings
     const deviceNames = data.map((device: { device_name: string }) => device.device_name);
-    console.log("Fetched devices:", deviceNames);
     return deviceNames;
   };
 
   // Función para obtener sensores por dispositivo desde la API
   const getSensorsByDevice = async (deviceName: string) => {
-    const response = await fetch(`/api/sensors?device_name=${deviceName}`);
+    const response = await fetch('/api/sensors', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_device_name: deviceName }),
+    });
     const data = await response.json();
 
     if (!response.ok) {
@@ -46,7 +52,6 @@ const Page = () => {
       return [];
     }
 
-    console.log(`Fetched sensors for ${deviceName}:`, data);
     return data;
   };
 
@@ -59,12 +64,15 @@ const Page = () => {
       const groupedData: { [device: string]: string[] } = {};
       for (const device of uniqueDevices) {
         const sensors = await getSensorsByDevice(device);
-        groupedData[device] = sensors.map((sensor: { sensor_name: string }) => sensor.sensor_name);
+        console.log(`Sensors for ${device}:`, sensors);
+        groupedData[device] = sensors[0].sensor_names;
       }
       setGroupedData(groupedData);
 
-      // Solo seleccionar el primer dispositivo si no hay ninguno seleccionado
-      if (uniqueDevices.length > 0 && !selectedDevice) {
+      // Solo seleccionar el dispositivo IIOT_Lisardo si está disponible
+      if (uniqueDevices.includes(devicePlaceholder)) {
+        setSelectedDevice(devicePlaceholder);
+      } else if (uniqueDevices.length > 0 && !selectedDevice) {
         setSelectedDevice(uniqueDevices[0]);
       }
     };
@@ -183,21 +191,60 @@ const Page = () => {
       </div>
 
       <main className="p-8 space-y-6">
-        {selectedDevice ? (
+        {selectedDevice && groupedData[selectedDevice] ? (
           <div className="space-y-6">
-            {groupedData[selectedDevice]?.map((sensor) => (
-              <div key={sensor} className="bg-[#49416D] p-4 rounded-lg shadow-md">
-                <h2 className="text-lg font-bold text-[#D9BBA0] mb-4">{sensor}</h2>
-                <div className="flex space-x-4">
-                  <SensorGauge device={selectedDevice} sensor={sensor} />
-                  <SensorChart device={selectedDevice} sensor={sensor} />
+            {groupedData[selectedDevice].map((sensor) => {
+              const isCollapsed = collapsedSensors[sensor];
+
+              let minValue = 0;
+              let maxValue = 100;
+
+              if (sensor === "RSSI") {
+                minValue = -100;
+                maxValue = 0;
+              } else if (sensor === "Temperature") {
+                minValue = 0;
+                maxValue = 100;
+              } else if (sensor === "Counter") {
+                minValue = 0;
+                maxValue = 999;
+              }
+
+              return (
+                <div
+                  key={`${selectedDevice}-${sensor}`}
+                  className="bg-[#6D4941] p-6 rounded-lg shadow-lg border border-[#D9BBA0] relative"
+                >
+                  {/* Botón de colapsar en la esquina superior izquierda */}
+                  <button
+                    className="absolute top-4 left-4 text-[#D9BBA0] hover:text-white transition"
+                    onClick={() => toggleSensorCollapse(sensor)}
+                  >
+                    {isCollapsed ? <ChevronDown size={24} /> : <ChevronUp size={24} />}
+                  </button>
+
+                  <h3 className="text-3xl font-semibold text-center mb-4 text-[#D9BBA0]">
+                    {sensor}
+                  </h3>
+
+                  {!isCollapsed && (
+                    <div className="flex flex-col lg:flex-row items-center justify-center space-y-6 lg:space-y-0 lg:space-x-6">
+                      <SensorGauge
+                        device={selectedDevice}
+                        sensor={sensor}
+                        minValue={minValue}
+                        maxValue={maxValue}
+                      />
+                      <SensorChart title={`Chart for ${sensor}`} device={selectedDevice} sensor={sensor} />
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-center text-[#D9BBA0] text-lg font-medium mt-10">
-            Select a device to view its sensors data.
+            Selecciona un dispositivo para visualizar sus datos.
           </p>
         )}
       </main>

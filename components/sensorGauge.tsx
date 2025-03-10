@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import supabase from "../lib/supabaseClient"; // Import supabase
+import supabase from "../lib/supabaseClient";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import { format, subHours, subDays } from "date-fns";
 import "react-circular-progressbar/dist/styles.css";
@@ -15,14 +15,15 @@ interface SensorData {
 
 interface SensorGaugeProps {
   device: string;
+  sensor: string;
 }
 
-export default function SensorGauge({ device }: SensorGaugeProps) {
+export default function SensorGauge({ device, sensor }: SensorGaugeProps) {
   const [data, setData] = useState<SensorData[]>([]);
   const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
   const [averageValue, setAverageValue] = useState(0);
 
-  const fetchData = async (device: string, timeFilter: "1h" | "1w" | "1m") => {
+  const fetchData = async (device: string, sensor: string, timeFilter: "1h" | "1w" | "1m") => {
     const now = new Date();
     let startTime = now;
 
@@ -34,8 +35,10 @@ export default function SensorGauge({ device }: SensorGaugeProps) {
       .from("timeseries")
       .select("*")
       .eq("device_name", device)
+      .eq("sensor_name", sensor)
       .gte("event_time", startTime.toISOString())
-      .order("event_time", { ascending: true });
+      .order("event_time", { ascending: true })
+      .limit(500);
 
     if (error) {
       console.error("Error fetching data:", error);
@@ -51,7 +54,6 @@ export default function SensorGauge({ device }: SensorGaugeProps) {
       (entry) => new Date(entry.event_time) >= subHours(new Date(), 1)
     );
 
-    // Calcular la media de los valores filtrados
     const average = filtered.length
       ? filtered.reduce((sum, entry) => sum + entry.value, 0) / filtered.length
       : 0;
@@ -60,16 +62,16 @@ export default function SensorGauge({ device }: SensorGaugeProps) {
   };
 
   useEffect(() => {
-    fetchData(device, timeFilter);
-  }, [device, timeFilter]);
+    fetchData(device, sensor, timeFilter);
+  }, [device, sensor, timeFilter]);
 
   const percentage = ((averageValue - 0) / (100 - 0)) * 100;
 
   const getColor = () => {
-    if (percentage <= 25) return "#A3D9A5"; // Verde claro
-    if (percentage <= 50) return "#7DBE80"; // Verde medio
-    if (percentage <= 75) return "#5A8B5E"; // Verde oscuro intermedio
-    return "#416D49"; // Verde principal
+    if (percentage <= 25) return "#A3D9A5";
+    if (percentage <= 50) return "#7DBE80";
+    if (percentage <= 75) return "#5A8B5E";
+    return "#416D49";
   };
 
   return (
@@ -108,7 +110,7 @@ export default function SensorGauge({ device }: SensorGaugeProps) {
       </div>
       <div className="text-center">
         <p className="text-[#D9BBA0] text-lg font-semibold tracking-wide">
-          {device}
+          {sensor}
         </p>
         <p className="text-[#D9BBA0] text-sm mt-1">
           Average value for the selected period of time

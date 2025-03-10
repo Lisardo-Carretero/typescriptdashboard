@@ -204,10 +204,19 @@ export type Database = {
       }
     }
     Functions: {
-      device_name: {
+      get_unique_device_name: {
         Args: Record<PropertyKey, never>
         Returns: {
           device_name: string
+        }[]
+      }
+      sensors_per_device: {
+        Args: {
+          p_device_name: string
+        }
+        Returns: {
+          device_name: string
+          sensor_names: Json
         }[]
       }
     }
