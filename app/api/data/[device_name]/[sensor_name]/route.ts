@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import supabase from "../../../../../lib/supabaseClient";
 
 export async function POST(request: Request, context: { params: { device_name: string, sensor_name: string } }) {
-    const { params } = context;
-    const { device_name, sensor_name } = await params;
+    const { device_name, sensor_name } = await context.params;
 
-    // Asegúrate de que el cuerpo de la solicitud contenga p_start_time
-    const { p_start_time } = await request.json();
+    const { p_start_time, p_end_time } = await request.json();
 
     // Verifica que p_start_time esté definido
     if (!p_start_time) {

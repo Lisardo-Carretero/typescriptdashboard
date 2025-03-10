@@ -1,8 +1,8 @@
 "use client";
 import supabase, { subscribeToAlerts } from "../lib/supabaseClient";
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
 import { subHours, subDays } from "date-fns";
+import AlertForm from "./alertForm";
 
 interface Alert {
     id?: number;
@@ -17,23 +17,18 @@ interface Alert {
 interface AlertConfigProps {
     devices: string[];
     groupedData: { [device: string]: string[] };
+    device: string | null;
 }
 
-export default function AlertConfig({ devices, groupedData }: AlertConfigProps) {
-    const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
-    const [sensors, setSensors] = useState<string[]>([]);
-    const [selectedSensor, setSelectedSensor] = useState<string | null>(null);
-    const [condition, setCondition] = useState<"<" | ">" | "<=" | ">=" | "=">(">");
-    const [threshold, setThreshold] = useState<number>(0);
-    const [color, setColor] = useState<string>("#ff0000"); // Rojo por defecto
-    const [timePeriod, setTimePeriod] = useState<"1h" | "1w" | "1m">("1h");
+export default function AlertConfig({ devices, groupedData, device }: AlertConfigProps) {
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [showModal, setShowModal] = useState<boolean>(false);
     const [user, setUser] = useState<any>(null);
+    const [conditionsMet, setConditionsMet] = useState<{ [key: number]: boolean }>({});
 
     async function fetchAlerts() {
         try {
-            const response = await fetch('/api/alerts');
+            const response = await fetch(`/api/alerts/${device}`);
             if (!response.ok) {
                 throw new Error('Error al cargar alertas');
             }
@@ -45,16 +40,18 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
     }
 
     useEffect(() => {
-        fetchAlerts();
-
-        const unsubscribe = subscribeToAlerts("*", () => {
+        if (device) {
             fetchAlerts();
-        });
 
-        return () => {
-            unsubscribe();
-        };
-    }, []);
+            const unsubscribe = subscribeToAlerts("*", () => {
+                fetchAlerts();
+            });
+
+            return () => {
+                unsubscribe();
+            };
+        }
+    }, [device]);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -70,67 +67,28 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                     setUser(result.user);
                 } else {
                     localStorage.removeItem("token");
+                    setUser(null); // Ensure user is set to null if token is invalid
                 }
+            } else {
+                setUser(null); // Ensure user is set to null if no token is found
             }
         };
         fetchUser();
     }, []);
 
-    // Actualizar sensores cuando se seleccione un dispositivo
     useEffect(() => {
-        if (selectedDevice && groupedData[selectedDevice]) {
-            setSensors(groupedData[selectedDevice]);
-        } else {
-            setSensors([]);
-        }
-    }, [selectedDevice, groupedData]);
-
-    // Función para resetear el formulario
-    const resetForm = () => {
-        setSelectedDevice(null);
-        setSelectedSensor(null);
-        setCondition(">");
-        setThreshold(0);
-        setColor("#ff0000");
-        setTimePeriod("1h");
-    };
-
-    // Función para cerrar el modal
-    const closeModal = () => {
-        setShowModal(false);
-        resetForm();
-    };
-
-    async function saveAlert() {
-        if (!user) {
-            alert("⚠️ Please log in first.");
-            return;
-        }
-
-        if (!selectedDevice) {
-            alert("⚠️ You must select a device.");
-            return;
-        }
-
-        if (!selectedSensor) {
-            alert("⚠️ You must select a sensor.");
-            return;
-        }
-
-        if (isNaN(threshold)) {
-            alert("⚠️ The threshold must be a valid number.");
-            return;
-        }
-
-        const newAlert: Alert = {
-            device_name: selectedDevice,
-            sensor_name: selectedSensor,
-            condition,
-            threshold,
-            color,
-            time_period: timePeriod,
+        const checkConditions = async () => {
+            const newConditionsMet: { [key: number]: boolean } = {};
+            for (const alert of alerts) {
+                newConditionsMet[alert.id!] = await isConditionMet(alert);
+            }
+            setConditionsMet(newConditionsMet);
         };
 
+        checkConditions();
+    }, [alerts]);
+
+    async function saveAlert(newAlert: Alert) {
         try {
             const response = await fetch('/api/alerts', {
                 method: 'POST',
@@ -147,7 +105,7 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
             const savedAlert = await response.json();
             setAlerts([...alerts, savedAlert]);
-            closeModal();
+            setShowModal(false);
             alert("✅ Alert CREATED successfully!");
         } catch (error: any) {
             alert(`❌ Error during creation: ${error?.message || 'UNKNOWN ERROR'}`);
@@ -220,7 +178,7 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
     return (
         <div className="p-6 bg-[#49416D] rounded-lg shadow-md text-white">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Avaliable Alerts</h2>
+                <h2 className="text-xl font-bold">Available Alerts</h2>
                 <button
                     onClick={() => setShowModal(true)}
                     className={`bg-green-600 text-white px-4 py-2 rounded-md transition-colors shadow-md flex items-center ${!user ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'}`}
@@ -232,11 +190,11 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
             {/* Listado de alertas */}
             <div className="mt-4">
-                {alerts.length === 0 ? (
+                {alerts.filter(alert => alert.device_name === device).length === 0 ? (
                     <p className="text-center text-gray-300 py-4">There are no alerts configured</p>
                 ) : (
                     <ul className="space-y-2">
-                        {alerts.map(async (alert) => (
+                        {alerts.filter(alert => alert.device_name === device).map((alert) => (
                             <li
                                 key={alert.id}
                                 className="bg-gray-700 p-3 rounded-lg flex justify-between items-center shadow-md border border-gray-600"
@@ -244,7 +202,7 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                                 <span className="flex items-center">
                                     <span
                                         className="w-4 h-4 rounded-full mr-3"
-                                        style={{ backgroundColor: await isConditionMet(alert) ? alert.color : 'transparent' }}
+                                        style={{ backgroundColor: conditionsMet[alert.id!] ? alert.color : 'transparent' }}
                                     />
                                     <span className="font-medium">{alert.device_name}</span>
                                     <span className="mx-2 text-gray-300">•</span>
@@ -272,128 +230,12 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
             {/* Modal de creación de alertas */}
             {showModal && (
-                <div
-                    className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
-                    onClick={closeModal}
-                    style={{ animation: 'fadeIn 0.2s ease-out' }}
-                >
-                    <div
-                        className="animate-fadeIn max-w-lg w-full p-4"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-
-                        <div className="bg-[#49416D] rounded-lg shadow-xl w-full max-w-md border border-[#D9BBA0]">
-                            <div className="p-6 ">
-                                <div className="flex justify-between items-center mb-5">
-                                    <h3 className="text-xl font-bold">New Alert</h3>
-                                    <button
-                                        onClick={closeModal}
-                                        className="text-gray-300 hover:text-white"
-                                    >
-                                        <X size={22} />
-                                    </button>
-                                </div>
-
-                                <div className="mb-4 ">
-                                    <label className="block mb-2 text-sm font-medium">Device name:</label>
-                                    <select
-                                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
-                                        value={selectedDevice || ""}
-                                        onChange={(e) => setSelectedDevice(e.target.value)}
-                                    >
-                                        <option value="">Select a device</option>
-                                        {devices.map((device) => (
-                                            <option key={device} value={device}>
-                                                {device}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Selección de Sensor - espaciado más amplio */}
-                                <div className="mb-4">
-                                    <label className="block mb-2 text-sm font-medium">Sensor name:</label>
-                                    <select
-                                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
-                                        value={selectedSensor || ""}
-                                        onChange={(e) => setSelectedSensor(e.target.value)}
-                                        disabled={!selectedDevice}
-                                    >
-                                        <option value="">Select a sensor</option>
-                                        {sensors.map((sensor) => (
-                                            <option key={sensor} value={sensor}>
-                                                {sensor}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="block mb-2 text-sm font-medium">Condition</label>
-                                    <select
-                                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
-                                        value={condition}
-                                        onChange={(e) => setCondition(e.target.value as "<" | ">" | "<=" | ">=" | "=")}
-                                    >
-                                        <option value=">">Greater than</option>
-                                        <option value="<">Lower than</option>
-                                        <option value=">=">Greater or equal to</option>
-                                        <option value="<=">Lower or equal to</option>
-                                        <option value="=">Equal to</option>
-                                    </select>
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="block mb-2 text-sm font-medium">Threshold value</label>
-                                    <input
-                                        type="number"
-                                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
-                                        value={threshold}
-                                        onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                                    />
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="block mb-2 text-sm font-medium">Time period</label>
-                                    <select
-                                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
-                                        value={timePeriod}
-                                        onChange={(e) => setTimePeriod(e.target.value as "1h" | "1w" | "1m")}
-                                    >
-                                        <option value="1h">Last hour</option>
-                                        <option value="1w">Last week</option>
-                                        <option value="1m">Last month</option>
-                                    </select>
-                                </div>
-
-                                <div className="mb-5">
-                                    <label className="block mb-2 text-sm font-medium">Alert color</label>
-                                    <input
-                                        type="color"
-                                        className="w-full h-10 rounded cursor-pointer"
-                                        value={color}
-                                        onChange={(e) => setColor(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="flex gap-3 mt-6">
-                                    <button
-                                        onClick={closeModal}
-                                        className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2.5 px-4 rounded transition-colors font-medium"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={saveAlert}
-                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded transition-colors font-medium"
-                                    >
-                                        Save
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <AlertForm
+                    devices={devices}
+                    groupedData={groupedData}
+                    onSave={saveAlert}
+                    onClose={() => setShowModal(false)}
+                />
             )}
         </div>
     );

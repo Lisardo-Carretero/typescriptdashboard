@@ -1,73 +1,33 @@
-import { NextResponse } from 'next/server';
-import supabase from '../../../lib/supabaseClient';
+import { NextResponse } from "next/server";
+import supabase from "../../../lib/supabaseClient";
 
 export async function POST(request: Request) {
+    let json;
     try {
-        const { device_name, sensor_name, condition, threshold, color } = await request.json();
+        json = await request.json();
+        console.log(json);
 
-        // Validate required fields
-        if (!device_name || !sensor_name || !condition || threshold === undefined || !color) {
-            return NextResponse.json(
-                { error: 'Missing required fields' },
-                { status: 400 }
-            );
+        if (!json) {
+            return NextResponse.json({ error: "Empty request body" }, { status: 400 });
         }
-
-        // Validate condition is one of the allowed values
-        const allowedConditions = ['<', '>', '<=', '>=', '='];
-        if (!allowedConditions.includes(condition)) {
-            return NextResponse.json(
-                { error: 'Invalid condition value' },
-                { status: 400 }
-            );
-        }
-
-        // Insert into database using supabase
-        const { data, error } = await supabase
-            .from('alerts')
-            .insert([{ device_name, sensor_name, condition, threshold, color }])
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Database error:', error);
-            return NextResponse.json(
-                { error: 'Failed to save alert' },
-                { status: 500 }
-            );
-        }
-
-        return NextResponse.json(data, { status: 201 });
     } catch (error) {
-        console.error('Error:', error);
-        return NextResponse.json(
-            { error: 'Failed to process request' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
     }
-}
 
-export async function GET() {
-    try {
-        const { data, error } = await supabase
-            .from('alerts')
-            .select('*')
-            .order('id', { ascending: false });
+    const { device_name, sensor_name, condition, threshold, color, time_period } = json;
+    console.log(device_name, sensor_name, condition, threshold, color, time_period);
 
-        if (error) {
-            console.error('Database error:', error);
-            return NextResponse.json(
-                { error: 'Failed to fetch alerts' },
-                { status: 500 }
-            );
-        }
-
-        return NextResponse.json(data);
-    } catch (error) {
-        console.error('Error:', error);
-        return NextResponse.json(
-            { error: 'Failed to process request' },
-            { status: 500 }
-        );
+    if (!device_name || !sensor_name || !condition || threshold === undefined || !color || !time_period) {
+        return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
+
+    const { data, error } = await supabase
+        .from('alerts')
+        .insert([{ device_name, sensor_name, condition, threshold, color, period_of_time: time_period }]);
+
+    if (error) {
+        return NextResponse.json({ error: "Error creating alert" }, { status: 500 });
+    }
+
+    return NextResponse.json("Alert created ", { status: 201 });
 }

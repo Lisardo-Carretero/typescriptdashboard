@@ -186,7 +186,7 @@ const Page = () => {
       <div className="h-20"></div>
 
       <div className="p-4">
-        <AlertConfig devices={devices} groupedData={groupedData} />
+        <AlertConfig devices={devices} groupedData={groupedData} device={selectedDevice} />
       </div>
 
       <main className="p-8 space-y-6">

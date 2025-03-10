@@ -36,7 +36,7 @@ export default function SensorGauge({ device, sensor, minValue, maxValue }: Sens
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ device_name: device, sensor_name: sensor, p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString() }),
+      body: JSON.stringify({ p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString() }),
     });
     const data = await response.json();
 

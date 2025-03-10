@@ -103,13 +103,6 @@ export type Database = {
             foreignKeyName: "DeviceHasSensor_id_fkey"
             columns: ["id"]
             isOneToOne: false
-            referencedRelation: "countries_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "DeviceHasSensor_id_fkey"
-            columns: ["id"]
-            isOneToOne: false
             referencedRelation: "devices"
             referencedColumns: ["id"]
           },
@@ -187,21 +180,7 @@ export type Database = {
       }
     }
     Views: {
-      countries_view: {
-        Row: {
-          id: string | null
-          name: string | null
-        }
-        Insert: {
-          id?: string | null
-          name?: string | null
-        }
-        Update: {
-          id?: string | null
-          name?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       get_average_value: {
@@ -213,6 +192,31 @@ export type Database = {
         }
         Returns: number
       }
+      get_sensor_values:
+        | {
+            Args: {
+              p_device_name: string
+              p_sensor_name: string
+              p_end_time: string
+              p_start_time?: string
+            }
+            Returns: {
+              value: number
+              event_time: string
+            }[]
+          }
+        | {
+            Args: {
+              p_device_name: string
+              p_sensor_name: string
+              p_start_time: string
+              p_end_time: string
+            }
+            Returns: {
+              value: number
+              event_time: string
+            }[]
+          }
       get_unique_device_name: {
         Args: Record<PropertyKey, never>
         Returns: {
