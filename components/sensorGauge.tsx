@@ -52,6 +52,14 @@ export default function SensorGauge({ device, sensor, minValue, maxValue }: Sens
 
   useEffect(() => {
     fetchData(device, sensor, timeFilter);
+
+    if (timeFilter === "1h") {
+      const interval = setInterval(() => {
+        fetchData(device, sensor, timeFilter);
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
   }, [device, sensor, timeFilter]);
 
   const percentage = ((averageValue - minValue) / (maxValue - minValue)) * 100;

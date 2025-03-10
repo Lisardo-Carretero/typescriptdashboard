@@ -31,6 +31,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ title, device, sensor }) => {
   const [data, setData] = useState<SensorData[]>([]);
   const [filteredData, setFilteredData] = useState<SensorData[]>([]);
   const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
+  const [isPaused, setIsPaused] = useState(false);
 
   const fetchData = async (device: string, sensor: string, timeFilter: "1h" | "1w" | "1m") => {
     const now = new Date();
@@ -59,8 +60,18 @@ const SensorChart: React.FC<SensorChartProps> = ({ title, device, sensor }) => {
   };
 
   useEffect(() => {
-    fetchData(device, sensor, timeFilter);
-  }, [device, sensor, timeFilter]);
+    if (!isPaused) {
+      fetchData(device, sensor, timeFilter);
+
+      if (timeFilter === "1h") {
+        const interval = setInterval(() => {
+          fetchData(device, sensor, timeFilter);
+        }, 5000);
+
+        return () => clearInterval(interval);
+      }
+    }
+  }, [device, sensor, timeFilter, isPaused]);
 
   // Función para ajustar los intervalos dinámicamente
   const optimizeIntervals = (data: SensorData[]) => {
@@ -128,10 +139,19 @@ const SensorChart: React.FC<SensorChartProps> = ({ title, device, sensor }) => {
                 ? "Last week"
                 : "Last month"}
           </button>
+
         ))}
+        <button
+          className={`px-4 py-2 rounded-lg font-semibold transition duration-300 ${isPaused
+            ? "bg-[#416D49] text-[#D9BBA0]"
+            : "bg-[#8A625A] text-white shadow-md"
+            }`}
+          onClick={() => setIsPaused(!isPaused)}
+        >
+          {isPaused ? "Resume" : "Pause"}
+        </button>
       </div>
 
-      {/* Gráfico con Zoom y Pan */}
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={filteredData.length ? filteredData : [{ event_time: "", value: 0 }]}>
           <XAxis dataKey="event_time" stroke="#D9BBA0" />
