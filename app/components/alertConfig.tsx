@@ -216,12 +216,12 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                     style={{ animation: 'fadeIn 0.2s ease-out' }}
                 >
                     <div
-                        className="animate-fadeIn"
+                        className="animate-fadeIn max-w-lg w-full p-4"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Aumentado el ancho máximo del contenedor */}
+
                         <div className="bg-[#49416D] rounded-lg shadow-xl w-full max-w-md border border-[#D9BBA0]">
-                            <div className="p-6">
+                            <div className="p-6 ">
                                 <div className="flex justify-between items-center mb-5">
                                     <h3 className="text-xl font-bold">New Alert</h3>
                                     <button
@@ -232,8 +232,7 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                                     </button>
                                 </div>
 
-                                {/* Selección de Dispositivo - espaciado más amplio */}
-                                <div className="mb-4">
+                                <div className="mb-4 ">
                                     <label className="block mb-2 text-sm font-medium">Device name:</label>
                                     <select
                                         className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
