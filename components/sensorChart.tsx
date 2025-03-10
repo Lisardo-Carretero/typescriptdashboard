@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
+import supabase from "../lib/supabaseClient";
 import { format, subHours, subDays, differenceInSeconds } from "date-fns";
 import {
   LineChart,
@@ -14,11 +14,6 @@ import {
   CartesianGrid,
   Brush,
 } from "recharts";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface SensorData {
   device_name: string;

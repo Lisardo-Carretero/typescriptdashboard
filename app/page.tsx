@@ -1,27 +1,14 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
-import SensorChart from "./components/sensorChart";
-import SensorGauge from "./components/sensorGauge";
-import { Database } from "./database.types";
-import { ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
-import AlertConfig from "./components/alertConfig";
-import UserButton from "./components/userButton";
-import LoginForm from "./components/loginForm";
+import SensorChart from "../components/sensorChart";
+import SensorGauge from "../components/sensorGauge";
+import supabase from "../lib/supabaseClient";
 
-// Crear cliente Supabase con opciones de realtime
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    realtime: {
-      params: {
-        eventsPerSecond: 10
-      }
-    }
-  }
-);
+import { ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+import AlertConfig from "../components/alertConfig";
+import UserButton from "../components/userButton";
+import LoginForm from "../components/loginForm";
 
 const Page = () => {
   const [timeseries, setTimeseries] = useState<any[]>([]);

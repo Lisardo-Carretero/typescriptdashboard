@@ -1,6 +1,6 @@
 "use client";
 import { createClient } from "@supabase/supabase-js";
-import { Database } from "../database.types";
+import { Database } from "../app/database.types";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
