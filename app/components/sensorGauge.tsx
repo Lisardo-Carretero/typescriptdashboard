@@ -64,16 +64,16 @@ export default function SensorGauge({
           <button
             key={filter}
             className={`px-4 py-2 rounded-lg font-semibold transition duration-300 ${timeFilter === filter
-                ? "bg-[#416D49] text-white shadow-md"
-                : "bg-[#6D4941] text-[#D9BBA0] hover:bg-[#8A625A]"
+              ? "bg-[#416D49] text-white shadow-md"
+              : "bg-[#6D4941] text-[#D9BBA0] hover:bg-[#8A625A]"
               }`}
             onClick={() => setTimeFilter(filter)}
           >
             {filter === "1h"
-              ? "Última Hora"
+              ? "Last hour"
               : filter === "1w"
-                ? "Última Semana"
-                : "Último Mes"}
+                ? "Last week"
+                : "Last month"}
           </button>
         ))}
       </div>
@@ -96,7 +96,7 @@ export default function SensorGauge({
           {sensorName}
         </p>
         <p className="text-[#D9BBA0] text-sm mt-1">
-          Average for the selected period
+          Average value for the selected period of time
         </p>
       </div>
     </div>

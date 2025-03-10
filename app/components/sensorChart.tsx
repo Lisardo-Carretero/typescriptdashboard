@@ -131,10 +131,10 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
             onClick={() => setTimeFilter(filter as "1h" | "1w" | "1m")}
           >
             {filter === "1h"
-              ? "Última Hora"
+              ? "Last hour"
               : filter === "1w"
-                ? "Última Semana"
-                : "Último Mes"}
+                ? "Last week"
+                : "Last month"}
           </button>
         ))}
       </div>
