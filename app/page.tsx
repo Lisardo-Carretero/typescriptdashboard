@@ -152,7 +152,6 @@ const Page = () => {
   };
 
   const handleLoginClick = () => {
-    console.log("Abriendo modal de login");
     setShowLoginModal(true);
   };
 

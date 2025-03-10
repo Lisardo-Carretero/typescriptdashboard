@@ -210,109 +210,115 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
             {/* Modal de creación de alertas */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4">
+                <div
+                    className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
+                    onClick={closeModal}
+                    style={{ animation: 'fadeIn 0.2s ease-out' }} // Añadida la misma animación que en el modal de login
+                >
                     <div
-                        className="bg-[#49416D] rounded-lg shadow-2xl w-full max-w-md border border-[#6D4941] animate-fadeIn"
+                        className="animate-fadeIn" // Cambiado para que solo el contenido use la clase de animación
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold">New Alert</h3>
-                                <button
-                                    onClick={closeModal}
-                                    className="text-gray-300 hover:text-white"
-                                >
-                                    <X size={24} />
-                                </button>
-                            </div>
+                        <div className="bg-[#49416D] rounded-lg shadow-xl w-full max-w-md border border-[#D9BBA0]">
+                            <div className="p-6">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-xl font-bold">New Alert</h3>
+                                    <button
+                                        onClick={closeModal}
+                                        className="text-gray-300 hover:text-white"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
 
-                            {/* Selección de Dispositivo */}
-                            <div className="mb-4">
-                                <label className="block mb-1 font-medium">Device name:</label>
-                                <select
-                                    className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
-                                    value={selectedDevice || ""}
-                                    onChange={(e) => setSelectedDevice(e.target.value)}
-                                >
-                                    <option value="">Select a device</option>
-                                    {devices.map((device) => (
-                                        <option key={device} value={device}>
-                                            {device}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                                {/* Selección de Dispositivo */}
+                                <div className="mb-4">
+                                    <label className="block mb-1 font-medium">Device name:</label>
+                                    <select
+                                        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                        value={selectedDevice || ""}
+                                        onChange={(e) => setSelectedDevice(e.target.value)}
+                                    >
+                                        <option value="">Select a device</option>
+                                        {devices.map((device) => (
+                                            <option key={device} value={device}>
+                                                {device}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            {/* Selección de Sensor */}
-                            <div className="mb-4">
-                                <label className="block mb-1 font-medium">Sensor name:</label>
-                                <select
-                                    className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
-                                    value={selectedSensor || ""}
-                                    onChange={(e) => setSelectedSensor(e.target.value)}
-                                    disabled={!selectedDevice}
-                                >
-                                    <option value="">Select a sensor</option>
-                                    {sensors.map((sensor) => (
-                                        <option key={sensor} value={sensor}>
-                                            {sensor}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                                {/* Selección de Sensor */}
+                                <div className="mb-4">
+                                    <label className="block mb-1 font-medium">Sensor name:</label>
+                                    <select
+                                        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                        value={selectedSensor || ""}
+                                        onChange={(e) => setSelectedSensor(e.target.value)}
+                                        disabled={!selectedDevice}
+                                    >
+                                        <option value="">Select a sensor</option>
+                                        {sensors.map((sensor) => (
+                                            <option key={sensor} value={sensor}>
+                                                {sensor}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            {/* Condición */}
-                            <div className="mb-4">
-                                <label className="block mb-1 font-medium">Condition</label>
-                                <select
-                                    className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
-                                    value={condition}
-                                    onChange={(e) => setCondition(e.target.value as "<" | ">" | "<=" | ">=" | "=")}
-                                >
-                                    <option value=">">Greatter than</option>
-                                    <option value="<">Lower than</option>
-                                    <option value=">=">Greatter or equal to</option>
-                                    <option value="<=">Lower or equal to</option>
-                                    <option value="=">Equal to</option>
-                                </select>
-                            </div>
+                                {/* Condición */}
+                                <div className="mb-4">
+                                    <label className="block mb-1 font-medium">Condition</label>
+                                    <select
+                                        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                        value={condition}
+                                        onChange={(e) => setCondition(e.target.value as "<" | ">" | "<=" | ">=" | "=")}
+                                    >
+                                        <option value=">">Greatter than</option>
+                                        <option value="<">Lower than</option>
+                                        <option value=">=">Greatter or equal to</option>
+                                        <option value="<=">Lower or equal to</option>
+                                        <option value="=">Equal to</option>
+                                    </select>
+                                </div>
 
-                            {/* Valor Umbral */}
-                            <div className="mb-4">
-                                <label className="block mb-1 font-medium">Threshold value</label>
-                                <input
-                                    type="number"
-                                    className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
-                                    value={threshold}
-                                    onChange={(e) => setThreshold(parseFloat(e.target.value))}
-                                />
-                            </div>
+                                {/* Valor Umbral */}
+                                <div className="mb-4">
+                                    <label className="block mb-1 font-medium">Threshold value</label>
+                                    <input
+                                        type="number"
+                                        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                        value={threshold}
+                                        onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                                    />
+                                </div>
 
-                            {/* Color */}
-                            <div className="mb-6">
-                                <label className="block mb-1 font-medium">Alert color</label>
-                                <input
-                                    type="color"
-                                    className="w-full h-10 rounded cursor-pointer"
-                                    value={color}
-                                    onChange={(e) => setColor(e.target.value)}
-                                />
-                            </div>
+                                {/* Color */}
+                                <div className="mb-6">
+                                    <label className="block mb-1 font-medium">Alert color</label>
+                                    <input
+                                        type="color"
+                                        className="w-full h-10 rounded cursor-pointer"
+                                        value={color}
+                                        onChange={(e) => setColor(e.target.value)}
+                                    />
+                                </div>
 
-                            {/* Botones de acción */}
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={closeModal}
-                                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={saveAlert}
-                                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors"
-                                >
-                                    Save
-                                </button>
+                                {/* Botones de acción */}
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={closeModal}
+                                        className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={saveAlert}
+                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors"
+                                    >
+                                        Save
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
