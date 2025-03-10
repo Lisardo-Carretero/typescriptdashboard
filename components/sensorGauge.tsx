@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import supabase from "../lib/supabaseClient"; // Import supabase
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import { format, subHours, subDays } from "date-fns";
 import "react-circular-progressbar/dist/styles.css";
@@ -13,22 +14,15 @@ interface SensorData {
 }
 
 interface SensorGaugeProps {
-  data: SensorData[];
-  minValue: number;
-  maxValue: number;
-  sensorName: string;
+  device: string;
 }
 
-export default function SensorGauge({
-  data,
-  minValue,
-  maxValue,
-  sensorName,
-}: SensorGaugeProps) {
-  const [timeFilter, setTimeFilter] = useState("1h");
+export default function SensorGauge({ device }: SensorGaugeProps) {
+  const [data, setData] = useState<SensorData[]>([]);
+  const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
   const [averageValue, setAverageValue] = useState(0);
 
-  useEffect(() => {
+  const fetchData = async (device: string, timeFilter: "1h" | "1w" | "1m") => {
     const now = new Date();
     let startTime = now;
 
@@ -36,8 +30,25 @@ export default function SensorGauge({
     else if (timeFilter === "1w") startTime = subDays(now, 7);
     else if (timeFilter === "1m") startTime = subDays(now, 30);
 
+    const { data, error } = await supabase
+      .from("timeseries")
+      .select("*")
+      .eq("device_name", device)
+      .gte("event_time", startTime.toISOString())
+      .order("event_time", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching data:", error);
+      return;
+    }
+
+    setData(data);
+    calculateAverage(data);
+  };
+
+  const calculateAverage = (data: SensorData[]) => {
     const filtered = data.filter(
-      (entry) => new Date(entry.event_time) >= startTime
+      (entry) => new Date(entry.event_time) >= subHours(new Date(), 1)
     );
 
     // Calcular la media de los valores filtrados
@@ -46,9 +57,13 @@ export default function SensorGauge({
       : 0;
 
     setAverageValue(average);
-  }, [timeFilter, data]);
+  };
 
-  const percentage = ((averageValue - minValue) / (maxValue - minValue)) * 100;
+  useEffect(() => {
+    fetchData(device, timeFilter);
+  }, [device, timeFilter]);
+
+  const percentage = ((averageValue - 0) / (100 - 0)) * 100;
 
   const getColor = () => {
     if (percentage <= 25) return "#A3D9A5"; // Verde claro
@@ -67,7 +82,7 @@ export default function SensorGauge({
               ? "bg-[#416D49] text-white shadow-md"
               : "bg-[#6D4941] text-[#D9BBA0] hover:bg-[#8A625A]"
               }`}
-            onClick={() => setTimeFilter(filter)}
+            onClick={() => setTimeFilter(filter as "1h" | "1w" | "1m")}
           >
             {filter === "1h"
               ? "Last hour"
@@ -93,7 +108,7 @@ export default function SensorGauge({
       </div>
       <div className="text-center">
         <p className="text-[#D9BBA0] text-lg font-semibold tracking-wide">
-          {sensorName}
+          {device}
         </p>
         <p className="text-[#D9BBA0] text-sm mt-1">
           Average value for the selected period of time

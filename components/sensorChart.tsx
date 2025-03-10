@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import supabase from "../lib/supabaseClient";
+import supabase, { subscribeToTimeseries } from "../lib/supabaseClient"; // Import supabase and subscribeToTimeseries
 import { format, subHours, subDays, differenceInSeconds } from "date-fns";
 import {
   LineChart,
@@ -23,15 +23,15 @@ interface SensorData {
 }
 
 interface SensorChartProps {
-  data: SensorData[];
-  title: string;
+  device: string;
 }
 
-const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
+const SensorChart: React.FC<SensorChartProps> = ({ device }) => {
+  const [data, setData] = useState<SensorData[]>([]);
   const [filteredData, setFilteredData] = useState<SensorData[]>([]);
   const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
 
-  useEffect(() => {
+  const fetchData = async (device: string, timeFilter: "1h" | "1w" | "1m") => {
     const now = new Date();
     let startTime = now;
 
@@ -39,29 +39,34 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     else if (timeFilter === "1w") startTime = subDays(now, 7);
     else if (timeFilter === "1m") startTime = subDays(now, 30);
 
-    // Ordenar los datos y filtrar dentro del período seleccionado
-    const sortedData = [...data]
-      .filter((entry) => new Date(entry.event_time) >= startTime)
-      .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
+    const { data, error } = await supabase
+      .from("timeseries")
+      .select("*")
+      .eq("device_name", device)
+      .gte("event_time", startTime.toISOString())
+      .order("event_time", { ascending: true });
 
-    setFilteredData(optimizeIntervals(sortedData));
-  }, [timeFilter, data]);
+    if (error) {
+      console.error("Error fetching data:", error);
+      return;
+    }
+
+    setData(data);
+    setFilteredData(optimizeIntervals(data));
+  };
 
   useEffect(() => {
-    const channel = supabase
-      .channel("timeseries_realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "timeseries" },
-        (payload) => {
-          const newData = payload.new as SensorData;
-          setFilteredData((prev) => optimizeIntervals([...prev, newData]));
-        }
-      )
-      .subscribe();
+    fetchData(device, timeFilter);
+  }, [device, timeFilter]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToTimeseries("INSERT", (payload) => {
+      const newData = payload.new as SensorData;
+      setFilteredData((prev) => optimizeIntervals([...prev, newData]));
+    });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, []);
 
@@ -111,7 +116,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
   return (
     <div className="p-6 border border-[#D9BBA0] rounded-lg shadow-md bg-[#5A413D] text-white w-full">
       <h2 className="text-2xl font-semibold text-center mb-4 text-[#D9BBA0]">
-        {title}
+        Chart for {device}
       </h2>
 
       {/* Botones de Filtro */}

@@ -1,6 +1,5 @@
 "use client";
-import supabase from "../lib/supabaseClient";
-import { Database } from "../app/database.types";
+import supabase, { subscribeToAlerts } from "../lib/supabaseClient";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
@@ -27,6 +26,7 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
     const [color, setColor] = useState<string>("#ff0000"); // Rojo por defecto
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [showModal, setShowModal] = useState<boolean>(false);
+    const [user, setUser] = useState<any>(null);
 
     async function fetchAlerts() {
         try {
@@ -43,23 +43,22 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
     useEffect(() => {
         fetchAlerts();
+
+        const unsubscribe = subscribeToAlerts("*", () => {
+            fetchAlerts();
+        });
+
+        return () => {
+            unsubscribe();
+        };
     }, []);
 
     useEffect(() => {
-        const channel = supabase
-            .channel("alerts_changes")
-            .on(
-                "postgres_changes",
-                { event: "*", schema: "public", table: "alerts" },
-                () => {
-                    fetchAlerts();
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
+        const fetchUser = async () => {
+            const { data, error } = await supabase.auth.getUser();
+            if (data?.user) setUser(data.user);
         };
+        fetchUser();
     }, []);
 
     // Actualizar sensores cuando se seleccione un dispositivo
@@ -87,6 +86,11 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
     };
 
     async function saveAlert() {
+        if (!user) {
+            alert("⚠️ Debes iniciar sesión para crear una alerta.");
+            return;
+        }
+
         if (!selectedDevice) {
             alert("⚠️ Debes seleccionar un dispositivo.");
             return;
@@ -158,7 +162,8 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                 <h2 className="text-xl font-bold">Avaliable Alerts</h2>
                 <button
                     onClick={() => setShowModal(true)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors shadow-md flex items-center"
+                    className={`bg-green-600 text-white px-4 py-2 rounded-md transition-colors shadow-md flex items-center ${!user ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'}`}
+                    disabled={!user}
                 >
                     <span className="mr-1">+</span> New Alert
                 </button>

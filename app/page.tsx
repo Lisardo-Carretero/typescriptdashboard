@@ -1,111 +1,75 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { ChevronDown, CheckCircle2 } from "lucide-react";
+
 import SensorChart from "../components/sensorChart";
 import SensorGauge from "../components/sensorGauge";
 import supabase from "../lib/supabaseClient";
 
-import { ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 import AlertConfig from "../components/alertConfig";
 import UserButton from "../components/userButton";
 import LoginForm from "../components/loginForm";
 
 const Page = () => {
-  const [timeseries, setTimeseries] = useState<any[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [devices, setDevices] = useState<string[]>([]);
   const [collapsedSensors, setCollapsedSensors] = useState<{ [key: string]: boolean }>({});
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
+  const [groupedData, setGroupedData] = useState<{ [device: string]: string[] }>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Función para obtener dispositivos únicos
-  const getUniqueDevices = (data: any[]) => {
-    return Array.from(new Set(data.map((d) => d.device_name)));
+  // Función para obtener dispositivos únicos desde la API
+  const getUniqueDevices = async () => {
+    const response = await fetch('/api/devices');
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Error fetching devices:", data.error);
+      return [];
+    }
+
+    // Asegúrate de que data sea un array de strings
+    const deviceNames = data.map((device: { device_name: string }) => device.device_name);
+    console.log("Fetched devices:", deviceNames);
+    return deviceNames;
+  };
+
+  // Función para obtener sensores por dispositivo desde la API
+  const getSensorsByDevice = async (deviceName: string) => {
+    const response = await fetch(`/api/sensors?device_name=${deviceName}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Error fetching sensors:", data.error);
+      return [];
+    }
+
+    console.log(`Fetched sensors for ${deviceName}:`, data);
+    return data;
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data, error } = await supabase
-        .from("timeseries")
-        .select("*")
-        .order("event_time", { ascending: true });
+    const initializeData = async () => {
+      const uniqueDevices = await getUniqueDevices();
+      setDevices(uniqueDevices);
 
-      if (error) {
-        console.error("Error fetching data:", error);
-        return;
+      // Obtener sensores para cada dispositivo
+      const groupedData: { [device: string]: string[] } = {};
+      for (const device of uniqueDevices) {
+        const sensors = await getSensorsByDevice(device);
+        groupedData[device] = sensors.map((sensor: { sensor_name: string }) => sensor.sensor_name);
       }
+      setGroupedData(groupedData);
 
-      if (data) {
-        setTimeseries(data);
-        const uniqueDevices = getUniqueDevices(data);
-        setDevices(uniqueDevices);
-
-        // Solo seleccionar el primer dispositivo si no hay ninguno seleccionado
-        if (uniqueDevices.length > 0 && !selectedDevice) {
-          setSelectedDevice(uniqueDevices[0]);
-        }
+      // Solo seleccionar el primer dispositivo si no hay ninguno seleccionado
+      if (uniqueDevices.length > 0 && !selectedDevice) {
+        setSelectedDevice(uniqueDevices[0]);
       }
     };
 
-    fetchData();
-
-    // Configuración de canal con manejo de errores y reconexión
-    const channel = supabase
-      .channel("db-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "timeseries"
-        },
-        (payload) => {
-          console.log("Incoming change from channel:", payload);
-
-          if (payload.eventType === "INSERT") {
-            // Añadir el nuevo registro a los datos existentes
-            setTimeseries((prev) => {
-              // Verificar si el registro ya existe para evitar duplicados
-              const exists = prev.some(item =>
-                item.id === payload.new.id ||
-                (item.device_name === payload.new.device_name &&
-                  item.event_time === payload.new.event_time &&
-                  item.sensor_name === payload.new.sensor_name)
-              );
-
-              if (exists) {
-                return prev;
-              }
-              return [...prev, payload.new];
-            });
-
-            // Actualizar la lista de dispositivos si es necesario
-            const newDeviceName = payload.new.device_name;
-
-            setDevices((prevDevices) => {
-              if (!prevDevices.includes(newDeviceName)) {
-                console.log(`Adding new device from realtime: ${newDeviceName}`);
-                return [...prevDevices, newDeviceName];
-              }
-              return prevDevices;
-            });
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log(`Supabase realtime status: ${status}`);
-        if (status === "SUBSCRIBED") {
-          console.log("✅ Realtime subscription active");
-        } else if (status === "CHANNEL_ERROR") {
-          console.error("❌ Realtime subscription error");
-          // Intentar reconectar después de un tiempo
-          setTimeout(() => {
-            console.log("🔄 Attempting to reconnect realtime...");
-            channel.subscribe();
-          }, 5000);
-        }
-      });
+    initializeData();
 
     // Cierra el dropdown cuando se hace clic fuera de él
     const handleClickOutside = (event: MouseEvent) => {
@@ -117,34 +81,9 @@ const Page = () => {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      console.log("Cleaning up realtime subscription");
-      supabase.removeChannel(channel);
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []); // Eliminar selectedDevice de las dependencias para evitar re-suscripciones
-
-  // Estructura optimizada para AlertConfig
-  const sensorsPerDevice: { [device: string]: string[] } = timeseries.reduce(
-    (acc, curr) => {
-      if (!acc[curr.device_name]) acc[curr.device_name] = [];
-      if (!acc[curr.device_name].includes(curr.sensor_name)) {
-        acc[curr.device_name].push(curr.sensor_name);
-      }
-      return acc;
-    },
-    {} as { [device: string]: string[] }
-  );
-
-  const groupedData = timeseries.reduce(
-    (acc: { [device: string]: { [sensor: string]: any[] } }, curr) => {
-      if (!acc[curr.device_name]) acc[curr.device_name] = {};
-      if (!acc[curr.device_name][curr.sensor_name])
-        acc[curr.device_name][curr.sensor_name] = [];
-      acc[curr.device_name][curr.sensor_name].push(curr);
-      return acc;
-    },
-    {}
-  );
 
   const toggleSensorCollapse = (sensor: string) => {
     setCollapsedSensors((prev) => ({
@@ -164,10 +103,8 @@ const Page = () => {
 
   return (
     <div className="min-h-screen bg-[#2E2A3B] text-white">
-      {/* Header rediseñado con disposición más compacta y profesional */}
       <header className="bg-[#49416D] shadow-md fixed w-full top-0 z-40">
         <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
-          {/* Logo y título en el lado izquierdo */}
           <div className="flex items-center space-x-3">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -239,65 +176,24 @@ const Page = () => {
         </div>
       )}
 
-      {/* Espacio para el header fijo */}
       <div className="h-20"></div>
 
       <div className="p-4">
-        <AlertConfig devices={devices} groupedData={sensorsPerDevice} />
+        <AlertConfig devices={devices} groupedData={groupedData} />
       </div>
 
       <main className="p-8 space-y-6">
-        {selectedDevice && groupedData[selectedDevice] ? (
+        {selectedDevice ? (
           <div className="space-y-6">
-            {Object.keys(groupedData[selectedDevice]).map((sensor) => {
-              const sensorData = groupedData[selectedDevice][sensor];
-              const isCollapsed = collapsedSensors[sensor];
-
-              let minValue = 0;
-              let maxValue = 100;
-
-              if (sensor === "RSSI") {
-                minValue = -100;
-                maxValue = 0;
-              } else if (sensor === "Temperature") {
-                minValue = 0;
-                maxValue = 100;
-              } else if (sensor === "Counter") {
-                minValue = 0;
-                maxValue = 999;
-              }
-
-              return (
-                <div
-                  key={`${selectedDevice}-${sensor}`}
-                  className="bg-[#6D4941] p-6 rounded-lg shadow-lg border border-[#D9BBA0] relative"
-                >
-                  {/* Botón de colapsar en la esquina superior izquierda */}
-                  <button
-                    className="absolute top-4 left-4 text-[#D9BBA0] hover:text-white transition"
-                    onClick={() => toggleSensorCollapse(sensor)}
-                  >
-                    {isCollapsed ? <ChevronDown size={24} /> : <ChevronUp size={24} />}
-                  </button>
-
-                  <h3 className="text-3xl font-semibold text-center mb-4 text-[#D9BBA0]">
-                    {sensor}
-                  </h3>
-
-                  {!isCollapsed && (
-                    <div className="flex flex-col lg:flex-row items-center justify-center space-y-6 lg:space-y-0 lg:space-x-6">
-                      <SensorGauge
-                        sensorName={sensor}
-                        data={sensorData}
-                        minValue={minValue}
-                        maxValue={maxValue}
-                      />
-                      <SensorChart title={`Chart for ${sensor}`} data={sensorData} />
-                    </div>
-                  )}
+            {groupedData[selectedDevice]?.map((sensor) => (
+              <div key={sensor} className="bg-[#49416D] p-4 rounded-lg shadow-md">
+                <h2 className="text-lg font-bold text-[#D9BBA0] mb-4">{sensor}</h2>
+                <div className="flex space-x-4">
+                  <SensorGauge device={selectedDevice} sensor={sensor} />
+                  <SensorChart device={selectedDevice} sensor={sensor} />
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         ) : (
           <p className="text-center text-[#D9BBA0] text-lg font-medium mt-10">
