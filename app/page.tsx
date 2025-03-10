@@ -10,9 +10,17 @@ import AlertConfig from "./components/alertConfig";
 import UserButton from "./components/userButton";
 import LoginForm from "./components/loginForm";
 
+// Crear cliente Supabase con opciones de realtime
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    realtime: {
+      params: {
+        eventsPerSecond: 10
+      }
+    }
+  }
 );
 
 const Page = () => {
@@ -24,6 +32,11 @@ const Page = () => {
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Función para obtener dispositivos únicos
+  const getUniqueDevices = (data: any[]) => {
+    return Array.from(new Set(data.map((d) => d.device_name)));
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       const { data, error } = await supabase
@@ -31,11 +44,17 @@ const Page = () => {
         .select("*")
         .order("event_time", { ascending: true });
 
-      if (error) console.error("Error fetching data:", error);
-      else {
+      if (error) {
+        console.error("Error fetching data:", error);
+        return;
+      }
+
+      if (data) {
         setTimeseries(data);
-        const uniqueDevices = Array.from(new Set(data.map((d) => d.device_name)));
+        const uniqueDevices = getUniqueDevices(data);
         setDevices(uniqueDevices);
+
+        // Solo seleccionar el primer dispositivo si no hay ninguno seleccionado
         if (uniqueDevices.length > 0 && !selectedDevice) {
           setSelectedDevice(uniqueDevices[0]);
         }
@@ -44,20 +63,42 @@ const Page = () => {
 
     fetchData();
 
+    // Configurar el canal de tiempo real
     const channel = supabase
-      .channel("timeseries_changes")
+      .channel("db-changes")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "timeseries" },
+        {
+          event: "*", // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          schema: "public",
+          table: "timeseries"
+        },
         (payload) => {
-          setTimeseries((prev) => [...prev, payload.new]);
-          setDevices((prev) => {
-            const newDevice = payload.new.device_name;
-            return prev.includes(newDevice) ? prev : [...prev, newDevice];
-          });
+          console.log("Incoming change from chanel:", payload);
+
+          if (payload.eventType === "INSERT") {
+            // Añadir el nuevo registro a los datos existentes
+            setTimeseries((prev) => [...prev, payload.new]);
+
+            // Actualizar la lista de dispositivos si es necesario
+            const newDeviceName = payload.new.device_name;
+
+            setDevices((prevDevices) => {
+              if (!prevDevices.includes(newDeviceName)) {
+                console.log(`Adding device from chanel: ${newDeviceName}`);
+                return [...prevDevices, newDeviceName];
+              }
+              return prevDevices;
+            });
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Supabase realtime subscription status: ${status}`);
+        if (status === "SUBSCRIBED") {
+          console.log("Chanel active.");
+        }
+      });
 
     // Cierra el dropdown cuando se hace clic fuera de él
     const handleClickOutside = (event: MouseEvent) => {
@@ -69,10 +110,11 @@ const Page = () => {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
+      console.log("Removing channel and event listener");
       supabase.removeChannel(channel);
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [selectedDevice]);
+  }, []); // Eliminar selectedDevice de las dependencias para evitar re-suscripciones
 
   // Estructura optimizada para AlertConfig
   const sensorsPerDevice: { [device: string]: string[] } = timeseries.reduce(
