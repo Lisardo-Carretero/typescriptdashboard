@@ -26,12 +26,11 @@ export default function SensorGauge({ device, sensor, minValue, maxValue }: Sens
   const fetchData = async (device: string, sensor: string, timeFilter: "1h" | "1w" | "1m") => {
     const now = new Date();
     let startTime = now;
-    let endTime = null;
+    let endTime = now;
 
     if (timeFilter === "1h") endTime = subHours(now, 1);
     else if (timeFilter === "1w") endTime = subDays(now, 7);
     else if (timeFilter === "1m") endTime = subDays(now, 30);
-    console.log("Fetching data for", device, sensor, startTime, endTime);
     const response = await fetch(`/api/data/${device}/${sensor}/avg`, {
       method: 'POST',
       headers: {

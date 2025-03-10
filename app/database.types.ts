@@ -38,27 +38,27 @@ export type Database = {
         Row: {
           color: string
           condition: string
-          created_at: string | null
           device_name: string
           id: number
+          period_of_time: string
           sensor_name: string
           threshold: number
         }
         Insert: {
           color: string
           condition: string
-          created_at?: string | null
           device_name: string
           id?: number
+          period_of_time: string
           sensor_name: string
           threshold: number
         }
         Update: {
           color?: string
           condition?: string
-          created_at?: string | null
           device_name?: string
           id?: number
+          period_of_time?: string
           sensor_name?: string
           threshold?: number
         }

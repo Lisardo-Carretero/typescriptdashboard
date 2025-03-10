@@ -10,7 +10,7 @@ import AlertConfig from "../components/alertConfig";
 import UserButton from "../components/userButton";
 import LoginForm from "../components/loginForm";
 
-const devicePlaceholder = process.env.NEXT_PUBLIC_PLACEHOLDER_DEVICE;
+const devicePlaceholder = process.env.NEXT_PUBLIC_PLACEHOLDER_DEVICE || null;
 
 const Page = () => {
   const [selectedDevice, setSelectedDevice] = useState<string | null>(devicePlaceholder);

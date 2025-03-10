@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react"; // Importamos el icono X para cerrar
+import { X, Eye, EyeOff } from "lucide-react";
 
 const LoginForm = ({ onClose }: { onClose: () => void }) => {
   const [email, setEmail] = useState("");
@@ -9,6 +9,7 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,23 +18,26 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/auth", {
+      const saltRounds = 10;
+
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password: password }),
       });
 
       const result = await response.json();
       if (response.ok) {
-        setSuccess("Inicio de sesión exitoso");
+        setSuccess("Login successful");
+        localStorage.setItem("token", result.token); // Guardar el token en localStorage
         setTimeout(() => {
           onClose();
         }, 1000);
       } else {
-        setError(result.error || "Error al iniciar sesión. Intenta de nuevo.");
+        setError(result.error || "Error logging in. Please try again.");
       }
     } catch (err) {
-      setError("Error de conexión. Intenta más tarde.");
+      setError("Connection error. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +45,6 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <div className="bg-[#49416D] p-6 rounded-lg shadow-xl border border-[#D9BBA0] w-96 relative">
-      {/* Botón de cerrar en la esquina superior derecha */}
       <button
         onClick={onClose}
         className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
@@ -81,7 +84,7 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
           <input
             id="email"
             type="email"
-            placeholder="usuario@example.com"
+            placeholder="user@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="p-3 rounded-md w-full bg-[#2E2A3B] border border-[#D9BBA0]/50 text-white 
@@ -90,13 +93,13 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
           />
         </div>
 
-        <div>
+        <div className="relative">
           <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-1">
             Password
           </label>
           <input
             id="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -104,6 +107,13 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
                      placeholder-gray-400 focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent outline-none"
             required
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+          >
+            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          </button>
         </div>
 
         <button
@@ -112,7 +122,7 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
                    focus:outline-none focus:ring-2 focus:ring-[#D9BBA0] transition-colors disabled:opacity-70"
           disabled={isLoading}
         >
-          {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+          {isLoading ? "Logging in..." : "Login"}
         </button>
       </form>
     </div>

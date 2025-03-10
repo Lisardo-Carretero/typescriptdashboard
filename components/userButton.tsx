@@ -4,24 +4,38 @@ import { useState, useEffect, useRef } from "react";
 import supabase from "../lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { User } from "lucide-react";
+import RegisterForm from "./registerForm";
 
 const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
     const [user, setUser] = useState<any>(null);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [showRegisterModal, setShowRegisterModal] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
     useEffect(() => {
         const fetchUser = async () => {
-            const { data, error } = await supabase.auth.getUser();
-            if (data?.user) setUser(data.user);
+            const token = localStorage.getItem("token");
+            if (token) {
+                const response = await fetch("/api/auth/me", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    setUser(result.user);
+                } else {
+                    localStorage.removeItem("token");
+                }
+            }
         };
         fetchUser();
     }, []);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
+        localStorage.removeItem("token"); // Eliminar el token de localStorage
         setUser(null);
         router.refresh();
         setMenuOpen(false);
@@ -32,7 +46,11 @@ const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
         setMenuOpen(false);
     };
 
-    // Cierra el menú cuando se hace clic fuera
+    const handleRegisterClick = () => {
+        setShowRegisterModal(true);
+        setMenuOpen(false);
+    };
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (
@@ -62,7 +80,6 @@ const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
                 <User size={24} />
             </button>
 
-            {/* Menú flotante posicionado debajo del botón */}
             {menuOpen && (
                 <div
                     ref={menuRef}
@@ -76,13 +93,36 @@ const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
                             Logout
                         </button>
                     ) : (
-                        <button
-                            onClick={handleLoginClick}
-                            className="block px-4 py-2 text-sm text-white hover:bg-[#6D4941] w-full text-left"
-                        >
-                            Login
-                        </button>
+                        <>
+                            <button
+                                onClick={handleLoginClick}
+                                className="block px-4 py-2 text-sm text-white hover:bg-[#6D4941] w-full text-left"
+                            >
+                                Login
+                            </button>
+                            <button
+                                onClick={handleRegisterClick}
+                                className="block px-4 py-2 text-sm text-white hover:bg-[#6D4941] w-full text-left"
+                            >
+                                Register
+                            </button>
+                        </>
                     )}
+                </div>
+            )}
+
+            {showRegisterModal && (
+                <div
+                    className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
+                    onClick={() => setShowRegisterModal(false)}
+                    style={{ animation: 'fadeIn 0.2s ease-out' }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="animate-fadeIn"
+                    >
+                        <RegisterForm onClose={() => setShowRegisterModal(false)} />
+                    </div>
                 </div>
             )}
         </div>
