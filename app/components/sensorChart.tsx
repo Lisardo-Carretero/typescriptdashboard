@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { format, subHours, subDays } from "date-fns";
+import { format, subHours, subDays, isBefore, isEqual } from "date-fns";
 import {
   LineChart,
   Line,
@@ -31,8 +31,8 @@ interface SensorChartProps {
 }
 
 const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
-  const [filteredData, setFilteredData] = useState<SensorData[]>(data);
-  const [timeFilter, setTimeFilter] = useState("1h");
+  const [filteredData, setFilteredData] = useState<SensorData[]>([]);
+  const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
 
   useEffect(() => {
     const now = new Date();
@@ -42,11 +42,12 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     else if (timeFilter === "1w") startTime = subDays(now, 7);
     else if (timeFilter === "1m") startTime = subDays(now, 30);
 
-    const filtered = data.filter(
-      (entry) => new Date(entry.event_time) >= startTime
-    );
+    // Filtrar datos dentro del rango de tiempo seleccionado
+    const filtered = data.filter((entry) => new Date(entry.event_time) >= startTime);
 
-    setFilteredData(filtered);
+    // Asegurar continuidad de datos insertando valores 0 si faltan timestamps
+    const completeData = fillMissingData(filtered, startTime, now, timeFilter);
+    setFilteredData(completeData);
   }, [timeFilter, data]);
 
   useEffect(() => {
@@ -56,7 +57,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "timeseries" },
         (payload) => {
-          const newData = payload.new as SensorData; // Cast payload.new to SensorData
+          const newData = payload.new as SensorData;
           setFilteredData((prev) => [...prev, newData]);
         }
       )
@@ -66,6 +67,34 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  // Función para asegurar que haya datos en cada timestamp
+  const fillMissingData = (data: SensorData[], start: Date, end: Date, filter: string) => {
+    const interval = filter === "1h" ? 5 * 60 * 1000 : 60 * 60 * 1000; // 5 min para 1h, 1h para 1w y 1m
+    const filledData: SensorData[] = [];
+    let currentTime = new Date(start);
+
+    while (isBefore(currentTime, end) || isEqual(currentTime, end)) {
+      const existingData = data.find(
+        (entry) => format(new Date(entry.event_time), "yyyy-MM-dd HH:mm") === format(currentTime, "yyyy-MM-dd HH:mm")
+      );
+
+      if (existingData) {
+        filledData.push(existingData);
+      } else {
+        filledData.push({
+          device_name: "N/A",
+          sensor_name: "N/A",
+          value: 0,
+          event_time: currentTime.toISOString(),
+        });
+      }
+
+      currentTime = new Date(currentTime.getTime() + interval);
+    }
+
+    return filledData;
+  };
 
   const formattedData = filteredData.map((entry) => ({
     ...entry,
@@ -101,7 +130,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
               ? "bg-[#416D49] text-white shadow-md"
               : "bg-[#6D4941] text-[#D9BBA0] hover:bg-[#8A625A]"
               }`}
-            onClick={() => setTimeFilter(filter)}
+            onClick={() => setTimeFilter(filter as "1h" | "1w" | "1m")}
           >
             {filter === "1h"
               ? "Última Hora"
