@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { format, subHours, subDays, isBefore, isEqual, addSeconds, parseISO } from "date-fns";
+import { format, subHours, subDays, differenceInSeconds } from "date-fns";
 import {
   LineChart,
   Line,
@@ -12,8 +12,8 @@ import {
   Legend,
   ResponsiveContainer,
   CartesianGrid,
+  Brush,
 } from "recharts";
-import { Brush } from "recharts";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -44,17 +44,12 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     else if (timeFilter === "1w") startTime = subDays(now, 7);
     else if (timeFilter === "1m") startTime = subDays(now, 30);
 
-    // Ordenar los datos por fecha
-    const sortedData = [...data].sort((a, b) =>
-      new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
-    );
+    // Ordenar los datos y filtrar dentro del período seleccionado
+    const sortedData = [...data]
+      .filter((entry) => new Date(entry.event_time) >= startTime)
+      .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
 
-    // Filtrar solo los datos que caen en el rango de tiempo seleccionado
-    const filtered = sortedData.filter((entry) => new Date(entry.event_time) >= startTime);
-
-    // Asegurar que se rellenan los datos faltantes sin perder los existentes
-    const completeData = fillMissingData(filtered, startTime, now);
-    setFilteredData(completeData);
+    setFilteredData(optimizeIntervals(sortedData));
   }, [timeFilter, data]);
 
   useEffect(() => {
@@ -65,9 +60,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
         { event: "INSERT", schema: "public", table: "timeseries" },
         (payload) => {
           const newData = payload.new as SensorData;
-          setFilteredData((prev) => [...prev, newData].sort((a, b) =>
-            new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
-          ));
+          setFilteredData((prev) => optimizeIntervals([...prev, newData]));
         }
       )
       .subscribe();
@@ -77,39 +70,35 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     };
   }, []);
 
-  // Función mejorada para rellenar datos faltantes por segundo
-  const fillMissingData = (data: SensorData[], start: Date, end: Date) => {
-    const filledData: SensorData[] = [];
-    let currentTime = new Date(start);
+  // Función para ajustar los intervalos dinámicamente
+  const optimizeIntervals = (data: SensorData[]) => {
+    if (data.length === 0) return [];
 
-    while (isBefore(currentTime, end) || isEqual(currentTime, end)) {
-      const existingData = data.find((entry) => {
-        const entryTime = parseISO(entry.event_time);
-        return format(entryTime, "yyyy-MM-dd HH:mm:ss") === format(currentTime, "yyyy-MM-dd HH:mm:ss");
-      });
+    const optimizedData: any[] = [];
+    let lastTime: Date | null = null;
 
-      if (existingData) {
-        filledData.push(existingData);
-      } else {
-        filledData.push({
-          device_name: "N/A",
-          sensor_name: "N/A",
-          value: 0,
-          event_time: currentTime.toISOString(),
-        });
+    data.forEach((entry) => {
+      const currentTime = new Date(entry.event_time);
+
+      if (lastTime) {
+        const gap = differenceInSeconds(currentTime, lastTime);
+        if (gap > 5) {
+          // Si el gap es grande, marcar un salto en el gráfico
+          optimizedData.push({ event_time: "", value: null });
+        }
       }
 
-      currentTime = addSeconds(currentTime, 1);
-    }
+      optimizedData.push({
+        ...entry,
+        event_time: format(currentTime, "HH:mm:ss"),
+        full_date: format(currentTime, "yyyy-MM-dd HH:mm:ss"),
+      });
 
-    return filledData;
+      lastTime = currentTime;
+    });
+
+    return optimizedData;
   };
-
-  const formattedData = filteredData.map((entry) => ({
-    ...entry,
-    event_time: format(new Date(entry.event_time), "HH:mm:ss"),
-    full_date: format(new Date(entry.event_time), "yyyy-MM-dd HH:mm:ss"),
-  }));
 
   // Tooltip personalizado
   const CustomTooltip = ({ active, payload }: any) => {
@@ -152,7 +141,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
 
       {/* Gráfico con Zoom y Pan */}
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={formattedData.length ? formattedData : [{ event_time: "", value: 0 }]}>
+        <LineChart data={filteredData.length ? filteredData : [{ event_time: "", value: 0 }]}>
           <XAxis dataKey="event_time" stroke="#D9BBA0" />
           <YAxis stroke="#D9BBA0" />
           <CartesianGrid stroke="#6D4941" strokeDasharray="3 3" />
@@ -164,6 +153,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
             stroke="#ECAE49"
             strokeWidth={3}
             dot={{ fill: "#49416D", r: 3 }}
+            connectNulls={false} // Evita conectar datos con gaps grandes
           />
           <Brush dataKey="event_time" height={30} stroke="#ECAE49" />
         </LineChart>
