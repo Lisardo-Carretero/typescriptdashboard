@@ -213,29 +213,30 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                 <div
                     className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
                     onClick={closeModal}
-                    style={{ animation: 'fadeIn 0.2s ease-out' }} // Añadida la misma animación que en el modal de login
+                    style={{ animation: 'fadeIn 0.2s ease-out' }}
                 >
                     <div
-                        className="animate-fadeIn" // Cambiado para que solo el contenido use la clase de animación
+                        className="animate-fadeIn"
                         onClick={(e) => e.stopPropagation()}
                     >
+                        {/* Aumentado el ancho máximo del contenedor */}
                         <div className="bg-[#49416D] rounded-lg shadow-xl w-full max-w-md border border-[#D9BBA0]">
                             <div className="p-6">
-                                <div className="flex justify-between items-center mb-6">
+                                <div className="flex justify-between items-center mb-5">
                                     <h3 className="text-xl font-bold">New Alert</h3>
                                     <button
                                         onClick={closeModal}
                                         className="text-gray-300 hover:text-white"
                                     >
-                                        <X size={24} />
+                                        <X size={22} />
                                     </button>
                                 </div>
 
-                                {/* Selección de Dispositivo */}
+                                {/* Selección de Dispositivo - espaciado más amplio */}
                                 <div className="mb-4">
-                                    <label className="block mb-1 font-medium">Device name:</label>
+                                    <label className="block mb-2 text-sm font-medium">Device name:</label>
                                     <select
-                                        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
                                         value={selectedDevice || ""}
                                         onChange={(e) => setSelectedDevice(e.target.value)}
                                     >
@@ -248,11 +249,11 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                                     </select>
                                 </div>
 
-                                {/* Selección de Sensor */}
+                                {/* Selección de Sensor - espaciado más amplio */}
                                 <div className="mb-4">
-                                    <label className="block mb-1 font-medium">Sensor name:</label>
+                                    <label className="block mb-2 text-sm font-medium">Sensor name:</label>
                                     <select
-                                        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
                                         value={selectedSensor || ""}
                                         onChange={(e) => setSelectedSensor(e.target.value)}
                                         disabled={!selectedDevice}
@@ -266,36 +267,36 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                                     </select>
                                 </div>
 
-                                {/* Condición */}
+
                                 <div className="mb-4">
-                                    <label className="block mb-1 font-medium">Condition</label>
+                                    <label className="block mb-2 text-sm font-medium">Condition</label>
                                     <select
-                                        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
                                         value={condition}
                                         onChange={(e) => setCondition(e.target.value as "<" | ">" | "<=" | ">=" | "=")}
                                     >
-                                        <option value=">">Greatter than</option>
+                                        <option value=">">Greater than</option>
                                         <option value="<">Lower than</option>
-                                        <option value=">=">Greatter or equal to</option>
+                                        <option value=">=">Greater or equal to</option>
                                         <option value="<=">Lower or equal to</option>
                                         <option value="=">Equal to</option>
                                     </select>
                                 </div>
 
-                                {/* Valor Umbral */}
+
                                 <div className="mb-4">
-                                    <label className="block mb-1 font-medium">Threshold value</label>
+                                    <label className="block mb-2 text-sm font-medium">Threshold value</label>
                                     <input
                                         type="number"
-                                        className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
+                                        className="w-full p-2.5 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
                                         value={threshold}
                                         onChange={(e) => setThreshold(parseFloat(e.target.value))}
                                     />
                                 </div>
 
-                                {/* Color */}
-                                <div className="mb-6">
-                                    <label className="block mb-1 font-medium">Alert color</label>
+
+                                <div className="mb-5">
+                                    <label className="block mb-2 text-sm font-medium">Alert color</label>
                                     <input
                                         type="color"
                                         className="w-full h-10 rounded cursor-pointer"
@@ -304,17 +305,17 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                                     />
                                 </div>
 
-                                {/* Botones de acción */}
-                                <div className="flex gap-3">
+
+                                <div className="flex gap-3 mt-6">
                                     <button
                                         onClick={closeModal}
-                                        className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
+                                        className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2.5 px-4 rounded transition-colors font-medium"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={saveAlert}
-                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors"
+                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 px-4 rounded transition-colors font-medium"
                                     >
                                         Save
                                     </button>
