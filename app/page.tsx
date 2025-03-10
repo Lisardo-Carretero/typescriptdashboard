@@ -7,6 +7,8 @@ import SensorGauge from "./components/sensorGauge";
 import { Database } from "./database.types";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import AlertConfig from "./components/alertConfig";
+import UserButton from "./components/userButton";
+import LoginForm from "./components/loginForm";
 
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,6 +20,7 @@ const Page = () => {
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [devices, setDevices] = useState<string[]>([]);
   const [collapsedSensors, setCollapsedSensors] = useState<{ [key: string]: boolean }>({});
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,8 +91,12 @@ const Page = () => {
 
   return (
     <div className="min-h-screen bg-[#2E2A3B] text-white">
-      {/* Barra de dispositivos fija */}
+      {/* Barra de dispositivos fija con botón de usuario */}
       <header className="bg-[#49416D] p-4 shadow-md fixed w-full top-0 z-50">
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-xl font-bold text-[#D9BBA0]">IoT Dashboard</h1>
+          <UserButton onLoginClick={() => setShowLoginModal(true)} />
+        </div>
         <div className="mt-4 flex justify-center space-x-4 overflow-x-auto">
           {devices.map((device) => (
             <button
@@ -104,10 +111,20 @@ const Page = () => {
         </div>
       </header>
 
+      {/* Modal de login */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
+          onClick={() => setShowLoginModal(false)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <LoginForm onClose={() => setShowLoginModal(false)} />
+          </div>
+        </div>
+      )}
+
       {/* Espacio para evitar que el contenido quede oculto bajo la barra */}
       <div className="h-28"></div>
 
-      <div>
+      <div className="p-4">
         <AlertConfig devices={devices} groupedData={sensorsPerDevice} />
       </div>
 
@@ -116,7 +133,6 @@ const Page = () => {
           <div className="space-y-6">
             {Object.keys(groupedData[selectedDevice]).map((sensor) => {
               const sensorData = groupedData[selectedDevice][sensor];
-              const latestValue = sensorData[sensorData.length - 1]?.value || 0;
               const isCollapsed = collapsedSensors[sensor];
 
               let minValue = 0;

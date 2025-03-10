@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { User } from "lucide-react";
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const UserButton = () => {
+const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
     const [user, setUser] = useState<any>(null);
     const [menuOpen, setMenuOpen] = useState(false);
     const router = useRouter();
@@ -27,30 +27,37 @@ const UserButton = () => {
         await supabase.auth.signOut();
         setUser(null);
         router.refresh();
+        setMenuOpen(false);
+    };
+
+    const handleLoginClick = () => {
+        onLoginClick();
+        setMenuOpen(false);
     };
 
     return (
         <div className="relative">
             <button
-                className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-300"
+                className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-300 bg-[#6D4941] flex items-center justify-center text-white hover:bg-[#8A625A] transition-colors"
                 onClick={() => setMenuOpen(!menuOpen)}
             >
-                <Image
-                    src="/default-user.png"
-                    alt="User"
-                    width={40}
-                    height={40}
-                />
+                <User size={24} />
             </button>
             {menuOpen && (
-                <div className="absolute right-0 mt-2 w-32 bg-white shadow-lg rounded-lg py-2">
+                <div className="absolute right-0 mt-2 w-32 bg-[#49416D] shadow-lg rounded-lg py-2 border border-[#D9BBA0]">
                     {user ? (
-                        <button onClick={handleLogout} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                            Logout
+                        <button
+                            onClick={handleLogout}
+                            className="block px-4 py-2 text-sm text-white hover:bg-[#6D4941] w-full text-left"
+                        >
+                            Cerrar sesión
                         </button>
                     ) : (
-                        <button onClick={() => router.push("/login")} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                            Login
+                        <button
+                            onClick={handleLoginClick}
+                            className="block px-4 py-2 text-sm text-white hover:bg-[#6D4941] w-full text-left"
+                        >
+                            Iniciar sesión
                         </button>
                     )}
                 </div>

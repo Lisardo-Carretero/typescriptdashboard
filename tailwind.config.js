@@ -1,9 +1,8 @@
-// tailwind.config.js
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     content: [
-        './pages/**/*.{js,ts,jsx,tsx}',  // Asegúrate de que todas tus rutas estén aquí
+        './app/**/*.{js,ts,jsx,tsx}',  // Added app directory
+        './pages/**/*.{js,ts,jsx,tsx}',
         './components/**/*.{js,ts,jsx,tsx}',
     ],
     theme: {
