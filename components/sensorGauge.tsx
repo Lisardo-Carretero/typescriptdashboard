@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import supabase from "../lib/supabaseClient";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
-import { format, subHours, subDays } from "date-fns";
+import { subHours, subDays } from "date-fns";
 import "react-circular-progressbar/dist/styles.css";
 
 interface SensorData {
@@ -16,56 +15,46 @@ interface SensorData {
 interface SensorGaugeProps {
   device: string;
   sensor: string;
+  minValue: number;
+  maxValue: number;
 }
 
-export default function SensorGauge({ device, sensor }: SensorGaugeProps) {
-  const [data, setData] = useState<SensorData[]>([]);
-  const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
+export default function SensorGauge({ device, sensor, minValue, maxValue }: SensorGaugeProps) {
   const [averageValue, setAverageValue] = useState(0);
+  const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
 
   const fetchData = async (device: string, sensor: string, timeFilter: "1h" | "1w" | "1m") => {
     const now = new Date();
     let startTime = now;
+    let endTime = null;
 
-    if (timeFilter === "1h") startTime = subHours(now, 1);
-    else if (timeFilter === "1w") startTime = subDays(now, 7);
-    else if (timeFilter === "1m") startTime = subDays(now, 30);
+    if (timeFilter === "1h") endTime = subHours(now, 1);
+    else if (timeFilter === "1w") endTime = subDays(now, 7);
+    else if (timeFilter === "1m") endTime = subDays(now, 30);
+    console.log("Fetching data for", device, sensor, startTime, endTime);
+    const response = await fetch(`/api/data/${device}/${sensor}/avg`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ device_name: device, sensor_name: sensor, p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString() }),
+    });
+    const data = await response.json();
 
-    const { data, error } = await supabase
-      .from("timeseries")
-      .select("*")
-      .eq("device_name", device)
-      .eq("sensor_name", sensor)
-      .gte("event_time", startTime.toISOString())
-      .order("event_time", { ascending: true })
-      .limit(500);
-
-    if (error) {
-      console.error("Error fetching data:", error);
+    if (!response.ok || data.average_value === null) {
+      console.error("Error fetching data:", data.error);
+      setAverageValue(0);
       return;
     }
 
-    setData(data);
-    calculateAverage(data);
-  };
-
-  const calculateAverage = (data: SensorData[]) => {
-    const filtered = data.filter(
-      (entry) => new Date(entry.event_time) >= subHours(new Date(), 1)
-    );
-
-    const average = filtered.length
-      ? filtered.reduce((sum, entry) => sum + entry.value, 0) / filtered.length
-      : 0;
-
-    setAverageValue(average);
+    setAverageValue(data);
   };
 
   useEffect(() => {
     fetchData(device, sensor, timeFilter);
   }, [device, sensor, timeFilter]);
 
-  const percentage = ((averageValue - 0) / (100 - 0)) * 100;
+  const percentage = ((averageValue - minValue) / (maxValue - minValue)) * 100;
 
   const getColor = () => {
     if (percentage <= 25) return "#A3D9A5";

@@ -204,6 +204,15 @@ export type Database = {
       }
     }
     Functions: {
+      get_average_value: {
+        Args: {
+          p_device_name: string
+          p_sensor_name: string
+          p_end_time: string
+          p_start_time?: string
+        }
+        Returns: number
+      }
       get_unique_device_name: {
         Args: Record<PropertyKey, never>
         Returns: {

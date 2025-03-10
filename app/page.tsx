@@ -64,7 +64,6 @@ const Page = () => {
       const groupedData: { [device: string]: string[] } = {};
       for (const device of uniqueDevices) {
         const sensors = await getSensorsByDevice(device);
-        console.log(`Sensors for ${device}:`, sensors);
         groupedData[device] = sensors[0].sensor_names;
       }
       setGroupedData(groupedData);
