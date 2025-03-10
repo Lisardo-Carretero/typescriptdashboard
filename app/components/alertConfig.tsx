@@ -160,19 +160,19 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
     return (
         <div className="p-6 bg-[#49416D] rounded-lg shadow-md text-white">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Alertas Configuradas</h2>
+                <h2 className="text-xl font-bold">Avaliable Alerts</h2>
                 <button
                     onClick={() => setShowModal(true)}
                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md transition-colors shadow-md flex items-center"
                 >
-                    <span className="mr-1">+</span> Nueva Alerta
+                    <span className="mr-1">+</span> New Alert
                 </button>
             </div>
 
             {/* Listado de alertas */}
             <div className="mt-4">
                 {alerts.length === 0 ? (
-                    <p className="text-center text-gray-300 py-4">No hay alertas configuradas</p>
+                    <p className="text-center text-gray-300 py-4">There are no alerts configured</p>
                 ) : (
                     <ul className="space-y-2">
                         {alerts.map((alert) => (
@@ -217,7 +217,7 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                     >
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-xl font-bold">Nueva Alerta</h3>
+                                <h3 className="text-xl font-bold">New Alert</h3>
                                 <button
                                     onClick={closeModal}
                                     className="text-gray-300 hover:text-white"
@@ -228,13 +228,13 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
                             {/* Selección de Dispositivo */}
                             <div className="mb-4">
-                                <label className="block mb-1 font-medium">Dispositivo</label>
+                                <label className="block mb-1 font-medium">Device name:</label>
                                 <select
                                     className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
                                     value={selectedDevice || ""}
                                     onChange={(e) => setSelectedDevice(e.target.value)}
                                 >
-                                    <option value="">Seleccione un dispositivo</option>
+                                    <option value="">Select a device</option>
                                     {devices.map((device) => (
                                         <option key={device} value={device}>
                                             {device}
@@ -245,14 +245,14 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
                             {/* Selección de Sensor */}
                             <div className="mb-4">
-                                <label className="block mb-1 font-medium">Sensor</label>
+                                <label className="block mb-1 font-medium">Sensor name:</label>
                                 <select
                                     className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
                                     value={selectedSensor || ""}
                                     onChange={(e) => setSelectedSensor(e.target.value)}
                                     disabled={!selectedDevice}
                                 >
-                                    <option value="">Seleccione un sensor</option>
+                                    <option value="">Select a sensor</option>
                                     {sensors.map((sensor) => (
                                         <option key={sensor} value={sensor}>
                                             {sensor}
@@ -263,23 +263,23 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
                             {/* Condición */}
                             <div className="mb-4">
-                                <label className="block mb-1 font-medium">Condición</label>
+                                <label className="block mb-1 font-medium">Condition</label>
                                 <select
                                     className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
                                     value={condition}
                                     onChange={(e) => setCondition(e.target.value as "<" | ">" | "<=" | ">=" | "=")}
                                 >
-                                    <option value=">">Mayor que</option>
-                                    <option value="<">Menor que</option>
-                                    <option value=">=">Mayor o igual</option>
-                                    <option value="<=">Menor o igual</option>
-                                    <option value="=">Igual a</option>
+                                    <option value=">">Greatter than</option>
+                                    <option value="<">Lower than</option>
+                                    <option value=">=">Greatter or equal to</option>
+                                    <option value="<=">Lower or equal to</option>
+                                    <option value="=">Equal to</option>
                                 </select>
                             </div>
 
                             {/* Valor Umbral */}
                             <div className="mb-4">
-                                <label className="block mb-1 font-medium">Valor Umbral</label>
+                                <label className="block mb-1 font-medium">Threshold value</label>
                                 <input
                                     type="number"
                                     className="w-full p-2 rounded bg-gray-800 border border-gray-700 text-white focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent"
@@ -290,7 +290,7 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
 
                             {/* Color */}
                             <div className="mb-6">
-                                <label className="block mb-1 font-medium">Color de Alerta</label>
+                                <label className="block mb-1 font-medium">Alert color</label>
                                 <input
                                     type="color"
                                     className="w-full h-10 rounded cursor-pointer"
@@ -305,13 +305,13 @@ export default function AlertConfig({ devices, groupedData }: AlertConfigProps) 
                                     onClick={closeModal}
                                     className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
                                 >
-                                    Cancelar
+                                    Cancel
                                 </button>
                                 <button
                                     onClick={saveAlert}
                                     className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded transition-colors"
                                 >
-                                    Guardar
+                                    Save
                                 </button>
                             </div>
                         </div>

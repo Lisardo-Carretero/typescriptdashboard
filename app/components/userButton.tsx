@@ -78,14 +78,14 @@ const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
                             onClick={handleLogout}
                             className="block px-4 py-2 text-sm text-white hover:bg-[#6D4941] w-full text-left"
                         >
-                            Cerrar sesión
+                            Logout
                         </button>
                     ) : (
                         <button
                             onClick={handleLoginClick}
                             className="block px-4 py-2 text-sm text-white hover:bg-[#6D4941] w-full text-left"
                         >
-                            Iniciar sesión
+                            Login
                         </button>
                     )}
                 </div>

@@ -76,12 +76,12 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
       <form onSubmit={handleLogin} className="flex flex-col space-y-4">
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1">
-            Correo electrónico
+            Email
           </label>
           <input
             id="email"
             type="email"
-            placeholder="usuario@ejemplo.com"
+            placeholder="usuario@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="p-3 rounded-md w-full bg-[#2E2A3B] border border-[#D9BBA0]/50 text-white 
@@ -92,7 +92,7 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-1">
-            Contraseña
+            Password
           </label>
           <input
             id="password"
@@ -115,10 +115,6 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
           {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
         </button>
       </form>
-
-      <div className="mt-6 text-center text-sm text-gray-300">
-        <p>Demo académica - Universidad de Almería</p>
-      </div>
     </div>
   );
 };
