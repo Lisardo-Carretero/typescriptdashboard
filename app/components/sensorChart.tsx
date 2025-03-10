@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { format, subHours, subDays, isBefore, isEqual, parseISO } from "date-fns";
+import { format, subHours, subDays, isBefore, isEqual, addSeconds, parseISO } from "date-fns";
 import {
   LineChart,
   Line,
@@ -11,7 +11,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
+import { Brush } from "recharts";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -42,7 +44,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     else if (timeFilter === "1w") startTime = subDays(now, 7);
     else if (timeFilter === "1m") startTime = subDays(now, 30);
 
-    // Ordenar los datos por fecha para asegurar que se leen correctamente
+    // Ordenar los datos por fecha
     const sortedData = [...data].sort((a, b) =>
       new Date(a.event_time).getTime() - new Date(b.event_time).getTime()
     );
@@ -50,8 +52,8 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     // Filtrar solo los datos que caen en el rango de tiempo seleccionado
     const filtered = sortedData.filter((entry) => new Date(entry.event_time) >= startTime);
 
-    // Asegurar que se rellenan los datos faltantes sin perder los datos existentes
-    const completeData = fillMissingData(filtered, startTime, now, timeFilter);
+    // Asegurar que se rellenan los datos faltantes sin perder los existentes
+    const completeData = fillMissingData(filtered, startTime, now);
     setFilteredData(completeData);
   }, [timeFilter, data]);
 
@@ -75,22 +77,19 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     };
   }, []);
 
-  // Función mejorada para rellenar datos faltantes sin perder los existentes
-  const fillMissingData = (data: SensorData[], start: Date, end: Date, filter: string) => {
-    const interval = filter === "1h" ? 5 * 60 * 1000 : 60 * 60 * 1000; // 5 min para 1h, 1h para 1w y 1m
+  // Función mejorada para rellenar datos faltantes por segundo
+  const fillMissingData = (data: SensorData[], start: Date, end: Date) => {
     const filledData: SensorData[] = [];
     let currentTime = new Date(start);
 
     while (isBefore(currentTime, end) || isEqual(currentTime, end)) {
-      const closestData = data.find(
-        (entry) => {
-          const entryTime = parseISO(entry.event_time); // Convertir el timestamp de la BD a Date
-          return format(entryTime, "yyyy-MM-dd HH:mm") === format(currentTime, "yyyy-MM-dd HH:mm");
-        }
-      );
+      const existingData = data.find((entry) => {
+        const entryTime = parseISO(entry.event_time);
+        return format(entryTime, "yyyy-MM-dd HH:mm:ss") === format(currentTime, "yyyy-MM-dd HH:mm:ss");
+      });
 
-      if (closestData) {
-        filledData.push(closestData);
+      if (existingData) {
+        filledData.push(existingData);
       } else {
         filledData.push({
           device_name: "N/A",
@@ -100,7 +99,7 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
         });
       }
 
-      currentTime = new Date(currentTime.getTime() + interval);
+      currentTime = addSeconds(currentTime, 1);
     }
 
     return filledData;
@@ -151,13 +150,12 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
         ))}
       </div>
 
-      {/* Gráfico */}
+      {/* Gráfico con Zoom y Pan */}
       <ResponsiveContainer width="100%" height={300}>
-        <LineChart
-          data={formattedData.length ? formattedData : [{ event_time: "", value: 0 }]}
-        >
+        <LineChart data={formattedData.length ? formattedData : [{ event_time: "", value: 0 }]}>
           <XAxis dataKey="event_time" stroke="#D9BBA0" />
           <YAxis stroke="#D9BBA0" />
+          <CartesianGrid stroke="#6D4941" strokeDasharray="3 3" />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
           <Line
@@ -165,8 +163,9 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
             dataKey="value"
             stroke="#ECAE49"
             strokeWidth={3}
-            dot={{ fill: "#49416D", r: 4 }}
+            dot={{ fill: "#49416D", r: 3 }}
           />
+          <Brush dataKey="event_time" height={30} stroke="#ECAE49" />
         </LineChart>
       </ResponsiveContainer>
     </div>
