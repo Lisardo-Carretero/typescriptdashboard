@@ -33,8 +33,11 @@ const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
     };
 
     const handleLoginClick = () => {
-        onLoginClick();
         setMenuOpen(false);
+        // Pequeño retraso para que el menú se cierre primero visualmente
+        setTimeout(() => {
+            onLoginClick();
+        }, 10);
     };
 
     const toggleMenu = () => {

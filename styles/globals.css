@@ -28,16 +28,7 @@
   }
 }
 
-/* Otros estilos globales */
-body {
-  @apply bg-[#2E2A3B] text-white;
-}
-
 /* Animación para transiciones suaves */
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -48,4 +39,13 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Otros estilos globales */
+body {
+  @apply bg-[#2E2A3B] text-white;
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import SensorChart from "./components/sensorChart";
 import SensorGauge from "./components/sensorGauge";
 import { Database } from "./database.types";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 import AlertConfig from "./components/alertConfig";
 import UserButton from "./components/userButton";
 import LoginForm from "./components/loginForm";
@@ -21,6 +21,8 @@ const Page = () => {
   const [devices, setDevices] = useState<string[]>([]);
   const [collapsedSensors, setCollapsedSensors] = useState<{ [key: string]: boolean }>({});
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,6 +36,9 @@ const Page = () => {
         setTimeseries(data);
         const uniqueDevices = Array.from(new Set(data.map((d) => d.device_name)));
         setDevices(uniqueDevices);
+        if (uniqueDevices.length > 0 && !selectedDevice) {
+          setSelectedDevice(uniqueDevices[0]);
+        }
       }
     };
 
@@ -54,10 +59,20 @@ const Page = () => {
       )
       .subscribe();
 
+    // Cierra el dropdown cuando se hace clic fuera de él
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
     return () => {
       supabase.removeChannel(channel);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [selectedDevice]);
 
   // Estructura optimizada para AlertConfig
   const sensorsPerDevice: { [device: string]: string[] } = timeseries.reduce(
@@ -89,6 +104,11 @@ const Page = () => {
     }));
   };
 
+  const selectDevice = (device: string) => {
+    setSelectedDevice(device);
+    setDropdownOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#2E2A3B] text-white">
       {/* Header rediseñado con disposición más compacta y profesional */}
@@ -107,43 +127,66 @@ const Page = () => {
             <h1 className="text-xl font-bold text-[#D9BBA0]">IoT Dashboard</h1>
           </div>
 
-          <div className="order-3 md:order-2 w-full md:w-auto mt-2 md:mt-0 overflow-x-auto flex-grow md:flex-grow-0 md:max-w-md lg:max-w-xl xl:max-w-2xl py-1">
+          {/* Dropdown para selección de dispositivos */}
+          <div className="order-3 md:order-2 py-1 relative" ref={dropdownRef}>
             {devices.length > 0 && (
-              <div className="flex items-center space-x-1 md:space-x-2 justify-start md:justify-center">
-                <span className="text-sm font-semibold text-gray-300 whitespace-nowrap mr-2">Devices:</span>
-                <div className="flex space-x-1 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-500 scrollbar-track-transparent pb-1">
-                  {devices.map((device) => (
-                    <button
-                      key={device}
-                      onClick={() => setSelectedDevice(device)}
-                      className={`px-3 py-1 text-sm rounded-lg transition-all duration-300 whitespace-nowrap ${selectedDevice === device
-                        ? "bg-[#416D49] text-white font-medium scale-105 shadow-lg"
-                        : "bg-[#6D4941] bg-opacity-70 hover:bg-opacity-100 text-gray-200"
-                        }`}
-                    >
-                      {device}
-                    </button>
-                  ))}
-                </div>
+              <div className="inline-block">
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center space-x-2 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 px-4 py-2 rounded-lg text-white transition-all duration-300"
+                >
+                  <span>{selectedDevice || "Selecciona un dispositivo"}</span>
+                  <ChevronDown size={18} className={`transition-transform duration-300 ${dropdownOpen ? "transform rotate-180" : ""}`} />
+                </button>
+
+                {/* Lista desplegable de dispositivos */}
+                {dropdownOpen && (
+                  <div className="absolute left-0 mt-1 w-full min-w-[200px] max-h-[300px] overflow-y-auto bg-[#49416D] rounded-lg border border-[#D9BBA0] shadow-lg animate-fadeIn z-50">
+                    <div className="py-1">
+                      {devices.map((device) => (
+                        <button
+                          key={device}
+                          onClick={() => selectDevice(device)}
+                          className={`flex items-center justify-between w-full px-4 py-2 text-left text-sm ${selectedDevice === device
+                            ? "bg-[#416D49] text-white font-medium"
+                            : "text-gray-200 hover:bg-[#6D4941] hover:bg-opacity-70"
+                            }`}
+                        >
+                          <span>{device}</span>
+                          {selectedDevice === device && <CheckCircle2 size={18} />}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
+          {/* UserButton en el lado derecho */}
           <div className="order-2 md:order-3">
             <UserButton onLoginClick={() => setShowLoginModal(true)} />
           </div>
         </div>
       </header>
 
+      {/* Modal de login mejorado con backdrop translúcido */}
       {showLoginModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center p-4"
-          onClick={() => setShowLoginModal(false)}>
-          <div onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
+          onClick={() => setShowLoginModal(false)}
+          style={{ animation: 'fadeIn 0.2s ease-out' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="animate-fadeIn"
+          >
             <LoginForm onClose={() => setShowLoginModal(false)} />
           </div>
         </div>
       )}
 
+      {/* Espacio para el header fijo */}
       <div className="h-20"></div>
 
       <div className="p-4">
