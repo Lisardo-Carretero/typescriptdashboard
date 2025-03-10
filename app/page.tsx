@@ -63,29 +63,42 @@ const Page = () => {
 
     fetchData();
 
-    // Configurar el canal de tiempo real
+    // Configuración de canal con manejo de errores y reconexión
     const channel = supabase
       .channel("db-changes")
       .on(
         "postgres_changes",
         {
-          event: "*", // Escuchar todos los eventos (INSERT, UPDATE, DELETE)
+          event: "*",
           schema: "public",
           table: "timeseries"
         },
         (payload) => {
-          console.log("Incoming change from chanel:", payload);
+          console.log("Incoming change from channel:", payload);
 
           if (payload.eventType === "INSERT") {
             // Añadir el nuevo registro a los datos existentes
-            setTimeseries((prev) => [...prev, payload.new]);
+            setTimeseries((prev) => {
+              // Verificar si el registro ya existe para evitar duplicados
+              const exists = prev.some(item =>
+                item.id === payload.new.id ||
+                (item.device_name === payload.new.device_name &&
+                  item.event_time === payload.new.event_time &&
+                  item.sensor_name === payload.new.sensor_name)
+              );
+
+              if (exists) {
+                return prev;
+              }
+              return [...prev, payload.new];
+            });
 
             // Actualizar la lista de dispositivos si es necesario
             const newDeviceName = payload.new.device_name;
 
             setDevices((prevDevices) => {
               if (!prevDevices.includes(newDeviceName)) {
-                console.log(`Adding device from chanel: ${newDeviceName}`);
+                console.log(`Adding new device from realtime: ${newDeviceName}`);
                 return [...prevDevices, newDeviceName];
               }
               return prevDevices;
@@ -94,9 +107,16 @@ const Page = () => {
         }
       )
       .subscribe((status) => {
-        console.log(`Supabase realtime subscription status: ${status}`);
+        console.log(`Supabase realtime status: ${status}`);
         if (status === "SUBSCRIBED") {
-          console.log("Chanel active.");
+          console.log("✅ Realtime subscription active");
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("❌ Realtime subscription error");
+          // Intentar reconectar después de un tiempo
+          setTimeout(() => {
+            console.log("🔄 Attempting to reconnect realtime...");
+            channel.subscribe();
+          }, 5000);
         }
       });
 
@@ -110,7 +130,7 @@ const Page = () => {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      console.log("Removing channel and event listener");
+      console.log("Cleaning up realtime subscription");
       supabase.removeChannel(channel);
       document.removeEventListener("mousedown", handleClickOutside);
     };
