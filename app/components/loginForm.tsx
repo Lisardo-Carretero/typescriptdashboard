@@ -7,11 +7,13 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setIsLoading(true);
 
     try {
@@ -23,8 +25,10 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
 
       const result = await response.json();
       if (response.ok) {
-        onClose();
-        // Aquí podríamos actualizar el estado global del usuario
+        setSuccess("Inicio de sesión exitoso");
+        setTimeout(() => {
+          onClose();
+        }, 1000);
       } else {
         setError(result.error || "Error al iniciar sesión. Intenta de nuevo.");
       }
@@ -60,6 +64,12 @@ const LoginForm = ({ onClose }: { onClose: () => void }) => {
       {error && (
         <div className="bg-red-900/30 border border-red-500/50 p-3 rounded-md mb-4 text-sm text-white">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="bg-green-900/30 border border-green-500/50 p-3 rounded-md mb-4 text-sm text-white">
+          {success}
         </div>
       )}
 

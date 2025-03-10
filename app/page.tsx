@@ -109,6 +109,11 @@ const Page = () => {
     setDropdownOpen(false);
   };
 
+  const handleLoginClick = () => {
+    console.log("Abriendo modal de login");
+    setShowLoginModal(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#2E2A3B] text-white">
       {/* Header rediseñado con disposición más compacta y profesional */}
@@ -165,7 +170,7 @@ const Page = () => {
 
           {/* UserButton en el lado derecho */}
           <div className="order-2 md:order-3">
-            <UserButton onLoginClick={() => setShowLoginModal(true)} />
+            <UserButton onLoginClick={handleLoginClick} />
           </div>
         </div>
       </header>
