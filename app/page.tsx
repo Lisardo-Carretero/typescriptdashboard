@@ -93,10 +93,6 @@ const Page = () => {
     <div className="min-h-screen bg-[#2E2A3B] text-white">
       {/* Barra de dispositivos fija con botón de usuario */}
       <header className="bg-[#49416D] p-4 shadow-md fixed w-full top-0 z-50">
-        <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-bold text-[#D9BBA0]">IoT Dashboard</h1>
-          <UserButton onLoginClick={() => setShowLoginModal(true)} />
-        </div>
         <div className="mt-4 flex justify-center space-x-4 overflow-x-auto">
           {devices.map((device) => (
             <button
@@ -108,6 +104,7 @@ const Page = () => {
               {device}
             </button>
           ))}
+          <UserButton onLoginClick={() => setShowLoginModal(true)} />
         </div>
       </header>
 
