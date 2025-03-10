@@ -1,14 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
+import supabase from "../lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { User } from "lucide-react";
-
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
     const [user, setUser] = useState<any>(null);

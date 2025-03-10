@@ -1,13 +1,8 @@
 "use client";
-import { createClient } from "@supabase/supabase-js";
+import supabase from "../lib/supabaseClient";
 import { Database } from "../app/database.types";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
-
-const supabase = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface Alert {
     id?: number;
