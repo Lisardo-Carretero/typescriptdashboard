@@ -36,7 +36,7 @@ const AlertForm = ({ devices, groupedData, onSave, onClose }: AlertFormProps) =>
     }, [selectedDevice, groupedData]);
 
     const handleSave = () => {
-        if (!selectedDevice || !selectedSensor || isNaN(threshold)) {
+        if (!selectedDevice || !selectedSensor || !timePeriod || !color || isNaN(threshold)) {
             alert("⚠️ Please fill out all fields correctly.");
             return;
         }

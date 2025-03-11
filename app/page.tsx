@@ -243,7 +243,7 @@ const Page = () => {
           </div>
         ) : (
           <p className="text-center text-[#D9BBA0] text-lg font-medium mt-10">
-            Selecciona un dispositivo para visualizar sus datos.
+            Select a device to view its sensors data.
           </p>
         )}
       </main>
