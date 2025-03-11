@@ -114,8 +114,12 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
 
     async function deleteAlert(id: number) {
         try {
-            const response = await fetch(`/api/alerts/${id}`, {
+            const response = await fetch('/api/alerts', {
                 method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id }),
             });
 
             if (!response.ok) {
@@ -128,7 +132,6 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
             alert(`❌ Error: ${error?.message || 'UNKNOWN ERROR'}`);
         }
     }
-
     const fetchAverageValue = async (device: string, sensor: string, timePeriod: "1h" | "1w" | "1m"): Promise<number> => {
         const now = new Date();
         let startTime = now;
