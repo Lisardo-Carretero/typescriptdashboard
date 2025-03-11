@@ -20,46 +20,4 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
   },
 });
 
-// Helper function to subscribe to timeseries table changes
-export const subscribeToTimeseries = (eventType: "INSERT" | "UPDATE" | "DELETE" | "*", callback: (payload: any) => void) => {
-  const channel = supabase
-    .channel('timeseries_changes')
-    .on('postgres_changes',
-      {
-        event: eventType,
-        schema: 'public',
-        table: 'timeseries'
-      },
-      (payload) => callback(payload)
-    )
-    .subscribe((status) => {
-      //console.log(`Supabase realtime status: ${status}`);
-    });
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-};
-
-// Helper function to subscribe to alerts table changes
-export const subscribeToAlerts = (eventType: "INSERT" | "UPDATE" | "DELETE" | "*", callback: (payload: any) => void) => {
-  const channel = supabase
-    .channel('alerts_changes')
-    .on('postgres_changes',
-      {
-        event: eventType,
-        schema: 'public',
-        table: 'alerts'
-      },
-      (payload) => callback(payload)
-    )
-    .subscribe((status) => {
-      //console.log(`Alerts subscription status: ${status}`);
-    });
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-};
-
 export default supabase;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import supabase from "../../../../../lib/supabaseClient";
 
-export async function POST(request: Request, context: { params: { device_name: string, sensor_name: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ device_name: string, sensor_name: string }> }) {
     const { device_name, sensor_name } = await context.params;
 
     const { p_start_time, p_end_time } = await request.json();

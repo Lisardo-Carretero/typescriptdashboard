@@ -1,5 +1,5 @@
 "use client";
-import supabase, { subscribeToAlerts } from "../lib/supabaseClient";
+import supabase from "../lib/supabaseClient";
 import { useEffect, useState } from "react";
 import { subHours, subDays } from "date-fns";
 import AlertForm from "./alertForm";
@@ -38,19 +38,9 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
             console.error("Error cargando alertas:", error);
         }
     }
-
     useEffect(() => {
-        if (device) {
+        if (device)
             fetchAlerts();
-
-            const unsubscribe = subscribeToAlerts("*", () => {
-                fetchAlerts();
-            });
-
-            return () => {
-                unsubscribe();
-            };
-        }
     }, [device]);
 
     useEffect(() => {
@@ -113,6 +103,11 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
     }
 
     async function deleteAlert(id: number) {
+        if (!user) {
+            alert("❌ You must be logged in to delete an alert.");
+            return;
+        }
+
         try {
             const response = await fetch('/api/alerts', {
                 method: 'DELETE',
@@ -132,6 +127,7 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
             alert(`❌ Error: ${error?.message || 'UNKNOWN ERROR'}`);
         }
     }
+
     const fetchAverageValue = async (device: string, sensor: string, timePeriod: "1h" | "1w" | "1m"): Promise<number> => {
         const now = new Date();
         let startTime = now;
@@ -216,8 +212,9 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
                                 </span>
                                 <button
                                     onClick={() => deleteAlert(alert.id!)}
-                                    className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-md transition-colors"
+                                    className={`bg-red-500 text-white p-1.5 rounded-md transition-colors ${!user ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600'}`}
                                     title="Eliminar alerta"
+                                    disabled={!user}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M3 6h18"></path>
