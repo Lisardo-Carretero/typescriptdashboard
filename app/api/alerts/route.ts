@@ -1,80 +1,64 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { Database } from "../../database.types";
+import { NextResponse, NextRequest } from "next/server";
+import supabase from "../../../lib/supabaseClient";
 
-
-const supabase = createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+    let json;
     try {
-        const { device_name, sensor_name, condition, threshold, color } = await request.json();
+        json = await request.json();
+        console.log(json);
 
-        // Validate required fields
-        if (!device_name || !sensor_name || !condition || threshold === undefined || !color) {
-            return NextResponse.json(
-                { error: 'Missing required fields' },
-                { status: 400 }
-            );
+        if (!json) {
+            return NextResponse.json({ error: "Empty request body" }, { status: 400 });
         }
-
-        // Validate condition is one of the allowed values
-        const allowedConditions = ['<', '>', '<=', '>=', '='];
-        if (!allowedConditions.includes(condition)) {
-            return NextResponse.json(
-                { error: 'Invalid condition value' },
-                { status: 400 }
-            );
-        }
-
-        // Insert into database using supabase
-        const { data, error } = await supabase
-            .from('alerts')
-            .insert([{ device_name, sensor_name, condition, threshold, color }])
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Database error:', error);
-            return NextResponse.json(
-                { error: 'Failed to save alert' },
-                { status: 500 }
-            );
-        }
-
-        return NextResponse.json(data, { status: 201 });
     } catch (error) {
-        console.error('Error:', error);
-        return NextResponse.json(
-            { error: 'Failed to process request' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
     }
+
+    const { device_name, sensor_name, condition, threshold, color, time_period } = json;
+    console.log(device_name, sensor_name, condition, threshold, color, time_period);
+
+    if (!device_name || !sensor_name || !condition || threshold === undefined || !color || !time_period) {
+        return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+        .from('alerts')
+        .insert([{ device_name, sensor_name, condition, threshold, color, period_of_time: time_period }]);
+
+    if (error) {
+        return NextResponse.json({ error: "Error creating alert" }, { status: 500 });
+    }
+
+    return NextResponse.json("Alert created ", { status: 201 });
 }
 
-export async function GET() {
+export async function DELETE(request: NextRequest) {
+    let json;
     try {
-        const { data, error } = await supabase
-            .from('alerts')
-            .select('*')
-            .order('id', { ascending: false });
+        json = await request.json();
 
-        if (error) {
-            console.error('Database error:', error);
-            return NextResponse.json(
-                { error: 'Failed to fetch alerts' },
-                { status: 500 }
-            );
+        if (!json) {
+            return NextResponse.json({ error: "Empty request body" }, { status: 400 });
         }
-
-        return NextResponse.json(data);
     } catch (error) {
-        console.error('Error:', error);
-        return NextResponse.json(
-            { error: 'Failed to process request' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
     }
+
+    const { id } = json;
+    const _id = Number.parseInt(id);
+    // comprobar que id es un número
+    if (isNaN(_id)) {
+        return NextResponse.json({ error: "id must be a number" }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+        .from('alerts')
+        .delete()
+        .eq('id', _id);
+
+    if (error) {
+        return NextResponse.json({ error: "Error deleting alert" }, { status: 500 });
+    }
+
+    return NextResponse.json(data, { status: 200 });
 }

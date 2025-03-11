@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
-import { format, subHours, subDays } from "date-fns";
+import { subHours, subDays } from "date-fns";
 import "react-circular-progressbar/dist/styles.css";
 
 interface SensorData {
@@ -13,48 +13,61 @@ interface SensorData {
 }
 
 interface SensorGaugeProps {
-  data: SensorData[];
+  device: string;
+  sensor: string;
   minValue: number;
   maxValue: number;
-  sensorName: string;
 }
 
-export default function SensorGauge({
-  data,
-  minValue,
-  maxValue,
-  sensorName,
-}: SensorGaugeProps) {
-  const [timeFilter, setTimeFilter] = useState("1h");
+export default function SensorGauge({ device, sensor, minValue, maxValue }: SensorGaugeProps) {
   const [averageValue, setAverageValue] = useState(0);
+  const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
 
-  useEffect(() => {
+  const fetchData = async (device: string, sensor: string, timeFilter: "1h" | "1w" | "1m") => {
     const now = new Date();
     let startTime = now;
+    let endTime = now;
 
-    if (timeFilter === "1h") startTime = subHours(now, 1);
-    else if (timeFilter === "1w") startTime = subDays(now, 7);
-    else if (timeFilter === "1m") startTime = subDays(now, 30);
+    if (timeFilter === "1h") endTime = subHours(now, 1);
+    else if (timeFilter === "1w") endTime = subDays(now, 7);
+    else if (timeFilter === "1m") endTime = subDays(now, 30);
+    const response = await fetch(`/api/data/${device}/${sensor}/avg`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString() }),
+    });
+    const data = await response.json();
 
-    const filtered = data.filter(
-      (entry) => new Date(entry.event_time) >= startTime
-    );
+    if (!response.ok || data.average_value === null) {
+      console.error("Error fetching data:", data.error);
+      setAverageValue(0);
+      return;
+    }
 
-    // Calcular la media de los valores filtrados
-    const average = filtered.length
-      ? filtered.reduce((sum, entry) => sum + entry.value, 0) / filtered.length
-      : 0;
+    setAverageValue(data);
+  };
 
-    setAverageValue(average);
-  }, [timeFilter, data]);
+  useEffect(() => {
+    fetchData(device, sensor, timeFilter);
+
+    if (timeFilter === "1h") {
+      const interval = setInterval(() => {
+        fetchData(device, sensor, timeFilter);
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [device, sensor, timeFilter]);
 
   const percentage = ((averageValue - minValue) / (maxValue - minValue)) * 100;
 
   const getColor = () => {
-    if (percentage <= 25) return "#A3D9A5"; // Verde claro
-    if (percentage <= 50) return "#7DBE80"; // Verde medio
-    if (percentage <= 75) return "#5A8B5E"; // Verde oscuro intermedio
-    return "#416D49"; // Verde principal
+    if (percentage <= 25) return "#A3D9A5";
+    if (percentage <= 50) return "#7DBE80";
+    if (percentage <= 75) return "#5A8B5E";
+    return "#416D49";
   };
 
   return (
@@ -67,7 +80,7 @@ export default function SensorGauge({
               ? "bg-[#416D49] text-white shadow-md"
               : "bg-[#6D4941] text-[#D9BBA0] hover:bg-[#8A625A]"
               }`}
-            onClick={() => setTimeFilter(filter)}
+            onClick={() => setTimeFilter(filter as "1h" | "1w" | "1m")}
           >
             {filter === "1h"
               ? "Last hour"
@@ -93,7 +106,7 @@ export default function SensorGauge({
       </div>
       <div className="text-center">
         <p className="text-[#D9BBA0] text-lg font-semibold tracking-wide">
-          {sensorName}
+          {sensor}
         </p>
         <p className="text-[#D9BBA0] text-sm mt-1">
           Average value for the selected period of time

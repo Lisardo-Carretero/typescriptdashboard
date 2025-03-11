@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { format, subHours, subDays, differenceInSeconds } from "date-fns";
 import {
   LineChart,
@@ -15,11 +14,6 @@ import {
   Brush,
 } from "recharts";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 interface SensorData {
   device_name: string;
   sensor_name: string;
@@ -28,15 +22,18 @@ interface SensorData {
 }
 
 interface SensorChartProps {
-  data: SensorData[];
   title: string;
+  device: string;
+  sensor: string;
 }
 
-const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
+const SensorChart: React.FC<SensorChartProps> = ({ title, device, sensor }) => {
+  const [data, setData] = useState<SensorData[]>([]);
   const [filteredData, setFilteredData] = useState<SensorData[]>([]);
   const [timeFilter, setTimeFilter] = useState<"1h" | "1w" | "1m">("1h");
+  const [isPaused, setIsPaused] = useState(false);
 
-  useEffect(() => {
+  const fetchData = async (device: string, sensor: string, timeFilter: "1h" | "1w" | "1m") => {
     const now = new Date();
     let startTime = now;
 
@@ -44,31 +41,37 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
     else if (timeFilter === "1w") startTime = subDays(now, 7);
     else if (timeFilter === "1m") startTime = subDays(now, 30);
 
-    // Ordenar los datos y filtrar dentro del período seleccionado
-    const sortedData = [...data]
-      .filter((entry) => new Date(entry.event_time) >= startTime)
-      .sort((a, b) => new Date(a.event_time).getTime() - new Date(b.event_time).getTime());
+    const response = await fetch(`/api/data/${device}/${sensor}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ p_start_time: startTime.toISOString() }),
+    });
+    const data = await response.json();
 
-    setFilteredData(optimizeIntervals(sortedData));
-  }, [timeFilter, data]);
+    if (!response.ok) {
+      console.error("Error fetching data:", data.error);
+      return;
+    }
+
+    setData(data);
+    setFilteredData(optimizeIntervals(data));
+  };
 
   useEffect(() => {
-    const channel = supabase
-      .channel("timeseries_realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "timeseries" },
-        (payload) => {
-          const newData = payload.new as SensorData;
-          setFilteredData((prev) => optimizeIntervals([...prev, newData]));
-        }
-      )
-      .subscribe();
+    if (!isPaused) {
+      fetchData(device, sensor, timeFilter);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      if (timeFilter === "1h") {
+        const interval = setInterval(() => {
+          fetchData(device, sensor, timeFilter);
+        }, 5000);
+
+        return () => clearInterval(interval);
+      }
+    }
+  }, [device, sensor, timeFilter, isPaused]);
 
   // Función para ajustar los intervalos dinámicamente
   const optimizeIntervals = (data: SensorData[]) => {
@@ -136,10 +139,19 @@ const SensorChart: React.FC<SensorChartProps> = ({ data, title }) => {
                 ? "Last week"
                 : "Last month"}
           </button>
+
         ))}
+        <button
+          className={`px-4 py-2 rounded-lg font-semibold transition duration-300 ${isPaused
+            ? "bg-[#416D49] text-[#D9BBA0]"
+            : "bg-[#8A625A] text-white shadow-md"
+            }`}
+          onClick={() => setIsPaused(!isPaused)}
+        >
+          {isPaused ? "Resume" : "Pause"}
+        </button>
       </div>
 
-      {/* Gráfico con Zoom y Pan */}
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={filteredData.length ? filteredData : [{ event_time: "", value: 0 }]}>
           <XAxis dataKey="event_time" stroke="#D9BBA0" />
