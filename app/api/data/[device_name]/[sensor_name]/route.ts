@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import supabase from "../../../../../lib/supabaseClient";
 import { subHours, subDays } from "date-fns";
-import { time } from "console";
 
 export async function POST(request: Request, { params }: { params: Promise<{ device_name: string, sensor_name: string }> }) {
     const { device_name, sensor_name } = await params;
@@ -62,13 +61,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ dev
         }
         endTimeValue = endDate.toISOString();
     }
-
-    console.log("------------------------------------");
-    console.log("device_name:", device_name);
-    console.log("sensor_name:", sensor_name);
-    console.log("p_start_time:", startTimeValue.toISOString());
-    console.log("p_end_time:", endTimeValue);
-    console.log("------------------------------------");
 
     // Realiza la consulta a la base de datos
     const { data, error } = await supabase

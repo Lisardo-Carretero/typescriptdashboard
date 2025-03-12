@@ -1,7 +1,6 @@
-"use client";
 
 import React, { useState, useEffect } from "react";
-import { format, subHours, subDays, differenceInSeconds } from "date-fns";
+import { format, differenceInSeconds } from "date-fns";
 import {
   LineChart,
   Line,
@@ -34,19 +33,12 @@ const SensorChart: React.FC<SensorChartProps> = ({ title, device, sensor }) => {
   const [isPaused, setIsPaused] = useState(false);
 
   const fetchData = async (device: string, sensor: string, timeFilter: "1h" | "1w" | "1m") => {
-    const now = new Date();
-    let startTime = now;
-
-    if (timeFilter === "1h") startTime = subHours(now, 1);
-    else if (timeFilter === "1w") startTime = subDays(now, 7);
-    else if (timeFilter === "1m") startTime = subDays(now, 30);
-
     const response = await fetch(`/api/data/${device}/${sensor}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ p_start_time: startTime.toISOString() }),
+      body: JSON.stringify({ p_end_time: timeFilter }),
     });
     const data = await response.json();
 

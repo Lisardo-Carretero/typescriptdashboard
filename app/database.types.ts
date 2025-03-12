@@ -192,13 +192,25 @@ export type Database = {
         }
         Returns: number
       }
-      get_sensor_values:
+      get_sensor_values: {
+        Args: {
+          p_device_name: string
+          p_sensor_name: string
+          p_end_time: string
+          p_start_time?: string
+        }
+        Returns: {
+          value: number
+          event_time: string
+        }[]
+      }
+      get_timeseries_data:
         | {
             Args: {
               p_device_name: string
               p_sensor_name: string
+              p_start_time: string
               p_end_time: string
-              p_start_time?: string
             }
             Returns: {
               value: number
