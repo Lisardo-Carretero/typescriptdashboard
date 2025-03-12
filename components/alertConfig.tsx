@@ -1,7 +1,6 @@
 "use client";
-import supabase from "../lib/supabaseClient";
-import { useEffect, useState } from "react";
-import { subHours, subDays } from "date-fns";
+
+import { useEffect, useState, JSX } from "react";
 import AlertForm from "./alertForm";
 
 interface Alert {
@@ -70,6 +69,7 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
         const checkConditions = async () => {
             const newConditionsMet: { [key: number]: boolean } = {};
             for (const alert of alerts) {
+                console.log("Checking condition for alert", alert);
                 newConditionsMet[alert.id!] = await isConditionMet(alert);
             }
             setConditionsMet(newConditionsMet);
@@ -129,20 +129,12 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
     }
 
     const fetchAverageValue = async (device: string, sensor: string, timePeriod: "1h" | "1w" | "1m"): Promise<number> => {
-        const now = new Date();
-        let startTime = now;
-        let endTime = now;
-
-        if (timePeriod === "1h") endTime = subHours(now, 1);
-        else if (timePeriod === "1w") endTime = subDays(now, 7);
-        else if (timePeriod === "1m") endTime = subDays(now, 30);
-
         const response = await fetch(`/api/data/${device}/${sensor}/avg`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ p_start_time: startTime.toISOString(), p_end_time: endTime.toISOString() }),
+            body: JSON.stringify({ p_end_time: timePeriod }),
         });
 
         const data = await response.json();
@@ -203,10 +195,19 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
                                 <span className="flex items-center">
                                     <span
                                         className="w-4 h-4 rounded-full mr-3"
-                                        style={{ backgroundColor: conditionsMet[alert.id!] ? alert.color : 'transparent' }}
+                                        style={{
+                                            backgroundColor: conditionsMet[alert.id!] ? alert.color : 'transparent',
+                                            border: '1px solid',
+                                            borderColor: alert.color
+                                        }}
+                                        title={conditionsMet[alert.id!]
+                                            ? `Alert active: ${alert.sensor_name} ${alert.condition} ${alert.threshold}`
+                                            : `Alert inactive: Condition not met`
+                                        }
                                     />
                                     <span className="font-medium">{alert.device_name}</span>
                                     <span className="mx-2 text-gray-300">•</span>
+                                    <span>AVG</span>
                                     <span>{alert.sensor_name}</span>
                                     <span className="mx-2 text-gray-300 font-mono">{alert.condition}</span>
                                     <span>{alert.threshold}</span>
