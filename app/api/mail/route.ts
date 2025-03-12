@@ -20,7 +20,7 @@ interface Alert extends NextRequest {
     time_period: string;
 }
 
-export async function POST(request: NextRequest, res: NextResponse) {
+export async function POST(request: NextRequest) {
 
     const { alert } = await request.json() as { alert: Alert };
 
