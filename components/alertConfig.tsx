@@ -146,11 +146,13 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
         });
 
         const data = await response.json();
+        console.log(data);
 
         if (!response.ok || data.average_value === null) {
             console.error("Error fetching data:", data.error);
             return 0;
         }
+        console.log(data.average_value);
 
         return data.average_value;
     };

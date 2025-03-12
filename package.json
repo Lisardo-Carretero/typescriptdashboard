@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@react-email/components": "0.0.33",
     "@supabase/supabase-js": "^2.49.1",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
@@ -20,7 +21,9 @@
     "react-chartjs-2": "^5.3.0",
     "react-circular-progressbar": "^2.2.0",
     "react-dom": "^19.0.0",
+    "react-email": "^3.0.7",
     "recharts": "^2.15.1",
+    "resend": "^4.1.2",
     "supabase": "^2.15.8"
   },
   "devDependencies": {
