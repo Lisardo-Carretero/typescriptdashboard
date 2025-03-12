@@ -207,7 +207,7 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
                                     />
                                     <span className="font-medium">{alert.device_name}</span>
                                     <span className="mx-2 text-gray-300">•</span>
-                                    <span>AVG</span>
+                                    <span>AVG </span>
                                     <span>{alert.sensor_name}</span>
                                     <span className="mx-2 text-gray-300 font-mono">{alert.condition}</span>
                                     <span>{alert.threshold}</span>
