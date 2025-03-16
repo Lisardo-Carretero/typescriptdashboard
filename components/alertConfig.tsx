@@ -10,7 +10,7 @@ interface Alert {
     condition: "<" | ">" | "<=" | ">=" | "=";
     threshold: number;
     color: string;
-    time_period: "1h" | "1w" | "1m";
+    period_of_time: string;
 }
 
 interface AlertConfigProps {
@@ -18,6 +18,26 @@ interface AlertConfigProps {
     groupedData: { [device: string]: string[] };
     device: string | null;
 }
+
+export async function fetchAverageValue(device: string, sensor: string, timeFilter: string): Promise<number> {
+    const response = await fetch(`/api/data/${device}/${sensor}/avg`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ p_end_time: timeFilter }),
+    });
+
+    const data = await response.json();
+    console.log("Yo soy :", device, sensor, timeFilter, data);
+
+    if (!response.ok || data.average_value === null) {
+        console.error("Error fetching data:", data.error);
+        return 0;
+    }
+
+    return data;
+};
 
 export default function AlertConfig({ devices, groupedData, device }: AlertConfigProps) {
     const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -69,7 +89,6 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
         const checkConditions = async () => {
             const newConditionsMet: { [key: number]: boolean } = {};
             for (const alert of alerts) {
-                console.log("Checking condition for alert", alert);
                 newConditionsMet[alert.id!] = await isConditionMet(alert);
             }
             setConditionsMet(newConditionsMet);
@@ -128,41 +147,27 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
         }
     }
 
-    const fetchAverageValue = async (device: string, sensor: string, timePeriod: "1h" | "1w" | "1m"): Promise<number> => {
-        const response = await fetch(`/api/data/${device}/${sensor}/avg`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ p_end_time: timePeriod }),
-        });
-
-        const data = await response.json();
-        console.log(data);
-
-        if (!response.ok || data.average_value === null) {
-            console.error("Error fetching data:", data.error);
-            return 0;
-        }
-        console.log(data.average_value);
-
-        return data.average_value;
-    };
-
     const isConditionMet = async (alert: Alert): Promise<boolean> => {
-        const currentValue = await fetchAverageValue(alert.device_name, alert.sensor_name, alert.time_period);
+        const device_name = alert.device_name;
+        const sensor_name = alert.sensor_name;
+        const period_of_time = alert.period_of_time;
+        const threshold = alert.threshold;
+        const condition = alert.condition;
 
-        switch (alert.condition) {
+        const currentValue = await fetchAverageValue(device_name, sensor_name, period_of_time);
+        console.log(`Current value: ${currentValue}`);
+        console.log(`Threshold: ${threshold}`);
+        switch (condition) {
             case ">":
-                return currentValue > alert.threshold;
+                return currentValue > threshold;
             case "<":
-                return currentValue < alert.threshold;
+                return currentValue < threshold;
             case ">=":
-                return currentValue >= alert.threshold;
+                return currentValue >= threshold;
             case "<=":
-                return currentValue <= alert.threshold;
+                return currentValue <= threshold;
             case "=":
-                return currentValue === alert.threshold;
+                return currentValue === threshold;
             default:
                 return false;
         }
@@ -211,7 +216,7 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
                                     <span>{alert.sensor_name}</span>
                                     <span className="mx-2 text-gray-300 font-mono">{alert.condition}</span>
                                     <span>{alert.threshold}</span>
-                                    <span className="mx-2 text-gray-300">{alert.time_period}</span>
+                                    <span className="mx-2 text-gray-300">{alert.period_of_time}</span>
                                 </span>
                                 <button
                                     onClick={() => deleteAlert(alert.id!)}
@@ -231,7 +236,6 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
                 )}
             </div>
 
-            {/* Modal de creación de alertas */}
             {showModal && (
                 <AlertForm
                     devices={devices}

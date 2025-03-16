@@ -15,7 +15,7 @@ interface Alert {
     condition: "<" | ">" | "<=" | ">=" | "=";
     threshold: number;
     color: string;
-    time_period: "1h" | "1w" | "1m";
+    period_of_time: "1h" | "1w" | "1m";
 }
 
 const AlertForm = ({ devices, groupedData, onSave, onClose }: AlertFormProps) => {
@@ -47,7 +47,7 @@ const AlertForm = ({ devices, groupedData, onSave, onClose }: AlertFormProps) =>
             condition,
             threshold,
             color,
-            time_period: timePeriod,
+            period_of_time: timePeriod,
         };
 
         onSave(newAlert);

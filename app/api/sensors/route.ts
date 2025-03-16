@@ -1,14 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import supabase from "../../../lib/supabaseClient";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     let json;
     try {
-        const body = await request.text();
+        const body = await request.json();
         if (!body) {
             return NextResponse.json({ error: "Empty request body" }, { status: 400 });
         }
-        json = JSON.parse(body);
+        json = body;
     } catch (error) {
         return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
     }
