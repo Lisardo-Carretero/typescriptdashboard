@@ -10,6 +10,7 @@ interface Alert {
     condition: "<" | ">" | "<=" | ">=" | "=";
     threshold: number;
     color: string;
+    notify?: boolean;
     period_of_time: string;
 }
 
@@ -19,31 +20,13 @@ interface AlertConfigProps {
     device: string | null;
 }
 
-export async function fetchAverageValue(device: string, sensor: string, timeFilter: string): Promise<number> {
-    const response = await fetch(`/api/data/${device}/${sensor}/avg`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ p_end_time: timeFilter }),
-    });
 
-    const data = await response.json();
-    console.log("Yo soy :", device, sensor, timeFilter, data);
-
-    if (!response.ok || data.average_value === null) {
-        console.error("Error fetching data:", data.error);
-        return 0;
-    }
-
-    return data;
-};
 
 export default function AlertConfig({ devices, groupedData, device }: AlertConfigProps) {
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [showModal, setShowModal] = useState<boolean>(false);
     const [user, setUser] = useState<any>(null);
-    const [conditionsMet, setConditionsMet] = useState<{ [key: number]: boolean }>({});
+    const [conditionsMet, setConditionsMet] = useState<{ [key: number]: { isMet: boolean, currentValue: number } }>({});
 
     async function fetchAlerts() {
         try {
@@ -87,7 +70,7 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
 
     useEffect(() => {
         const checkConditions = async () => {
-            const newConditionsMet: { [key: number]: boolean } = {};
+            const newConditionsMet: { [key: number]: { isMet: boolean, currentValue: number } } = {};
             for (const alert of alerts) {
                 newConditionsMet[alert.id!] = await isConditionMet(alert);
             }
@@ -147,30 +130,14 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
         }
     }
 
-    const isConditionMet = async (alert: Alert): Promise<boolean> => {
-        const device_name = alert.device_name;
-        const sensor_name = alert.sensor_name;
-        const period_of_time = alert.period_of_time;
-        const threshold = alert.threshold;
-        const condition = alert.condition;
-
-        const currentValue = await fetchAverageValue(device_name, sensor_name, period_of_time);
-        console.log(`Current value: ${currentValue}`);
-        console.log(`Threshold: ${threshold}`);
-        switch (condition) {
-            case ">":
-                return currentValue > threshold;
-            case "<":
-                return currentValue < threshold;
-            case ">=":
-                return currentValue >= threshold;
-            case "<=":
-                return currentValue <= threshold;
-            case "=":
-                return currentValue === threshold;
-            default:
-                return false;
+    const isConditionMet = async (alert: Alert): Promise<{ isMet: boolean, currentValue: number }> => {
+        const response = await fetch(`/api/alert/${alert.id}/condition`);
+        if (!response.ok) {
+            throw new Error('Error fetching sensor data');
         }
+        const data = await response.json();
+        const { isMet, currentValue } = data;
+        return { isMet, currentValue };
     };
 
     return (

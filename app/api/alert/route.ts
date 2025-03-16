@@ -14,16 +14,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
     }
 
-    const { device_name, sensor_name, condition, threshold, color, time_period } = json;
-    console.log(device_name, sensor_name, condition, threshold, color, time_period);
+    const { device_name, sensor_name, condition, threshold, color, period_of_time } = json;
+    console.log(device_name, sensor_name, condition, threshold, color, period_of_time);
 
-    if (!device_name || !sensor_name || !condition || threshold === undefined || !color || !time_period) {
+    if (!device_name || !sensor_name || !condition || threshold === undefined || !color || !period_of_time) {
         return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
 
     const { data, error } = await supabase
         .from('alerts')
-        .insert([{ device_name, sensor_name, condition, threshold, color, period_of_time: time_period }]);
+        .insert([{ device_name, sensor_name, condition, threshold, color, period_of_time: period_of_time }]);
 
     if (error) {
         return NextResponse.json({ error: "Error creating alert" }, { status: 500 });

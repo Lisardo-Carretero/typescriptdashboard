@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import supabase from "../../../../../../lib/supabaseClient";
 
-export async function GET(request: NextRequest, { params }: { params: { device_name: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ device_name: string }> }) {
     const { device_name } = await params;
 
     if (!device_name) {

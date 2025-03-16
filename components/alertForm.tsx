@@ -15,6 +15,7 @@ interface Alert {
     condition: "<" | ">" | "<=" | ">=" | "=";
     threshold: number;
     color: string;
+    notify?: boolean;
     period_of_time: "1h" | "1w" | "1m";
 }
 
