@@ -23,7 +23,7 @@ const Page = () => {
 
   // Función para obtener dispositivos únicos desde la API
   const getUniqueDevices = async () => {
-    const response = await fetch('/api/devices');
+    const response = await fetch('/api/device/all');
     const data = await response.json();
 
     if (!response.ok) {

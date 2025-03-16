@@ -47,7 +47,7 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
 
     async function fetchAlerts() {
         try {
-            const response = await fetch(`/api/alerts/${device}`);
+            const response = await fetch(`/api/device/${device}/alerts/all`);
             if (!response.ok) {
                 throw new Error('Error al cargar alertas');
             }

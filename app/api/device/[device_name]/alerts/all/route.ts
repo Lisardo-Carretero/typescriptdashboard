@@ -1,9 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
-import supabase from "../../../../lib/supabaseClient";
+import supabase from "../../../../../../lib/supabaseClient";
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ device_name: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: { device_name: string } }) {
     const { device_name } = await params;
-    console.log("device_name", device_name);
+
     if (!device_name) {
         return NextResponse.json({ error: "device_name is required" }, { status: 400 });
     }
