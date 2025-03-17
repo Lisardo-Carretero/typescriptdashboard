@@ -20,13 +20,18 @@ interface AlertConfigProps {
     device: string | null;
 }
 
-
+interface ConditionsMet {
+    [key: number]: {
+        isMet: boolean;
+        currentValue: number;
+    };
+}
 
 export default function AlertConfig({ devices, groupedData, device }: AlertConfigProps) {
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [showModal, setShowModal] = useState<boolean>(false);
     const [user, setUser] = useState<any>(null);
-    const [conditionsMet, setConditionsMet] = useState<{ [key: number]: { isMet: boolean, currentValue: number } }>({});
+    const [conditionsMet, setConditionsMet] = useState<ConditionsMet>({});
 
     async function fetchAlerts() {
         try {
@@ -70,9 +75,10 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
 
     useEffect(() => {
         const checkConditions = async () => {
-            const newConditionsMet: { [key: number]: { isMet: boolean, currentValue: number } } = {};
+            const newConditionsMet: ConditionsMet = {};
             for (const alert of alerts) {
-                newConditionsMet[alert.id!] = await isConditionMet(alert);
+                const { isMet: boolean, currentValue: number } = await isConditionMet(alert);
+                newConditionsMet[alert.id!] = { isMet: boolean, currentValue: number };
             }
             setConditionsMet(newConditionsMet);
         };
@@ -82,7 +88,7 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
 
     async function saveAlert(newAlert: Alert) {
         try {
-            const response = await fetch('/api/alerts', {
+            const response = await fetch('/api/alert', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -111,7 +117,7 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
         }
 
         try {
-            const response = await fetch('/api/alerts', {
+            const response = await fetch('/api/alert', {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -132,11 +138,12 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
 
     const isConditionMet = async (alert: Alert): Promise<{ isMet: boolean, currentValue: number }> => {
         const response = await fetch(`/api/alert/${alert.id}/condition`);
+        console.log(response);
         if (!response.ok) {
             throw new Error('Error fetching sensor data');
         }
         const data = await response.json();
-        const { isMet, currentValue } = data;
+        const { isMet, currentValue }: { isMet: boolean, currentValue: number } = data;
         return { isMet, currentValue };
     };
 
@@ -168,7 +175,7 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
                                     <span
                                         className="w-4 h-4 rounded-full mr-3"
                                         style={{
-                                            backgroundColor: conditionsMet[alert.id!] ? alert.color : 'transparent',
+                                            backgroundColor: conditionsMet[alert.id!] && conditionsMet[alert.id!].isMet ? alert.color : 'transparent',
                                             border: '1px solid',
                                             borderColor: alert.color
                                         }}
@@ -180,7 +187,9 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
                                     <span className="font-medium">{alert.device_name}</span>
                                     <span className="mx-2 text-gray-300">•</span>
                                     <span>AVG </span>
+                                    <span className="mx-2 text-gray-300">•</span>
                                     <span>{alert.sensor_name}</span>
+                                    <span className="mx-2 text-gray-300">•</span>
                                     <span className="mx-2 text-gray-300 font-mono">{alert.condition}</span>
                                     <span>{alert.threshold}</span>
                                     <span className="mx-2 text-gray-300">{alert.period_of_time}</span>

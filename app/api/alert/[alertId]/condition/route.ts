@@ -39,32 +39,32 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
     const alert: Alert = { ...data[0], condition: data[0].condition as "<" | ">" | "<=" | ">=" | "=" };
 
-    const currentValue = await fetchAverageValue(alert.device_name, alert.sensor_name, alert.period_of_time);
-    if (!currentValue) {
-        return NextResponse.json({ error: "Error fetching current value" }, { status: 500 });
+    let currentValue = await fetchAverageValue(alert.device_name, alert.sensor_name, alert.period_of_time);
+    if (!currentValue || isNaN(currentValue)) {
+        currentValue = 0;
     }
-    let isConditionMet = false;
+    let isMet = false;
     switch (alert.condition) {
         case ">":
-            isConditionMet = currentValue > alert.threshold;
+            isMet = currentValue > alert.threshold;
             break;
         case "<":
-            isConditionMet = currentValue < alert.threshold;
+            isMet = currentValue < alert.threshold;
             break;
         case ">=":
-            isConditionMet = currentValue >= alert.threshold;
+            isMet = currentValue >= alert.threshold;
             break;
         case "<=":
-            isConditionMet = currentValue <= alert.threshold;
+            isMet = currentValue <= alert.threshold;
             break;
         case "=":
-            isConditionMet = currentValue === alert.threshold;
+            isMet = currentValue === alert.threshold;
             break;
         default:
-            isConditionMet = false;
+            isMet = false;
     }
 
-    if (isConditionMet && !alert.notify) {
+    if (isMet && !alert.notify) {
         const mailResponse = await sendEmail(alert);
 
         if (mailResponse.error) {
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
     }
 
-    return NextResponse.json({ isConditionMet, currentValue }, { status: 200 });
+    return NextResponse.json({ isMet, currentValue }, { status: 200 });
 }
 
 async function fetchAverageValue(device: string, sensor: string, timeFilter: string): Promise<number> {
