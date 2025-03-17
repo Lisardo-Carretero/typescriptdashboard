@@ -11,7 +11,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         return NextResponse.json({ error: "Missing device_name or sensor_name" }, { status: 400 });
     }
     if (!p_end_time) {
-        console.log("Error aquí AVG :" + p_end_time);
         return NextResponse.json({ error: "Missing p_end_time" }, { status: 400 });
     }
 
