@@ -5,7 +5,6 @@ export async function POST(request: NextRequest) {
     let json;
     try {
         json = await request.json();
-        console.log(json);
 
         if (!json) {
             return NextResponse.json({ error: "Empty request body" }, { status: 400 });
@@ -15,7 +14,6 @@ export async function POST(request: NextRequest) {
     }
 
     const { device_name, sensor_name, condition, threshold, color, period_of_time } = json;
-    console.log(device_name, sensor_name, condition, threshold, color, period_of_time);
 
     if (!device_name || !sensor_name || !condition || threshold === undefined || !color || !period_of_time) {
         return NextResponse.json({ error: "All fields are required" }, { status: 400 });

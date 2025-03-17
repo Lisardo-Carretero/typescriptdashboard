@@ -27,7 +27,6 @@ const Page = () => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Error fetching devices:", data.error);
       return [];
     }
 
@@ -48,7 +47,6 @@ const Page = () => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Error fetching sensors:", data.error);
       return [];
     }
 
