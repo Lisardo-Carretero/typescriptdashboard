@@ -136,11 +136,11 @@ async function sendEmail(alert: Alert) {
         });
 
         if (error) {
-            return { error: error.message, status: 500 };
+            return { error, status: 500 };
         }
 
         return { status: 200 };
     } catch (error) {
-        return { error: error.message, status: 500 };
+        return { error: error, status: 500 };
     }
 }
