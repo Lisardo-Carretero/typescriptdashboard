@@ -138,7 +138,6 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
 
     const isConditionMet = async (alert: Alert): Promise<{ isMet: boolean, currentValue: number }> => {
         const response = await fetch(`/api/alert/${alert.id}/condition`);
-        console.log(response);
         if (!response.ok) {
             throw new Error('Error fetching sensor data');
         }
