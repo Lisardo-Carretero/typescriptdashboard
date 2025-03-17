@@ -18,12 +18,10 @@ export async function POST(request: Request) {
         .single();
 
     if (error) {
-        console.error("Error fetching user:", error);
         return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
     if (!data) {
-        console.log("No user found with the specified email.");
         return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 

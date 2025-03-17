@@ -4,7 +4,8 @@ import { subHours, subDays } from "date-fns";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ device_name: string, sensor_name: string }> }) {
     const { device_name, sensor_name } = await params;
-    const { p_start_time, p_end_time } = await request.json();
+    const body = await request.json();
+    const { p_start_time, p_end_time } = body;
 
     if (!device_name || !sensor_name) {
         return NextResponse.json({ error: "Missing device_name or sensor_name" }, { status: 400 });

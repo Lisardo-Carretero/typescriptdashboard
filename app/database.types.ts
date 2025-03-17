@@ -40,6 +40,7 @@ export type Database = {
           condition: string
           device_name: string
           id: number
+          notify: boolean
           period_of_time: string
           sensor_name: string
           threshold: number
@@ -49,6 +50,7 @@ export type Database = {
           condition: string
           device_name: string
           id?: number
+          notify?: boolean
           period_of_time: string
           sensor_name: string
           threshold: number
@@ -58,6 +60,7 @@ export type Database = {
           condition?: string
           device_name?: string
           id?: number
+          notify?: boolean
           period_of_time?: string
           sensor_name?: string
           threshold?: number

@@ -34,7 +34,6 @@ export default function SensorGauge({ device, sensor, minValue, maxValue }: Sens
     const data = await response.json();
 
     if (!response.ok || data.average_value === null) {
-      console.error("Error fetching data:", data.error);
       setAverageValue(0);
       return;
     }

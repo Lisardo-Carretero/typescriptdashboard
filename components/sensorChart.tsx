@@ -43,7 +43,6 @@ const SensorChart: React.FC<SensorChartProps> = ({ title, device, sensor }) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Error fetching data:", data.error);
       return;
     }
 

@@ -17,32 +17,34 @@ interface Alert extends NextRequest {
     condition: "<" | ">" | "<=" | ">=" | "=";
     threshold: number;
     color: string;
-    time_period: string;
+    notify: boolean;
+    period_of_time: string;
 }
 
 export async function POST(request: NextRequest) {
 
-    const { alert } = await request.json() as { alert: Alert };
+    const { device_name, sensor_name, condition, threshold, color, period_of_time } = await request.json();
 
     if (!alert) {
         return NextResponse.json({ error: "Empty request body" }, { status: 400 });
     }
 
-    alert.time_period = timePeriodMap[alert.time_period];
-
-    if (!alert.time_period) {
-        return NextResponse.json({ error: "Invalid time_period" }, { status: 400 });
+    if (!period_of_time) {
+        return NextResponse.json({ error: "Invalid period_of_time" }, { status: 400 });
     }
 
     const { data, error } = await resend.emails.send({
         from: "IoT Dashboard " + "<" + sender + ">",
         to: [receiver],
         subject: "Alert detected !",
-        react: await EmailTemplate({ name: 'Bu' }),
-        //react: await EmailTemplate({
-        //    body: `Alert detected for device ${alert.device_name} and sensor ${alert.sensor_name}`,
-        //    html: `<p style="color: ${alert.color}">Threshold : ${alert.condition} ${alert.threshold} in the last reached.`
-        //}),
+        react: await EmailTemplate({
+            device_name: device_name,
+            sensor_name: sensor_name,
+            condition: condition,
+            threshold: threshold,
+            color: color,
+            period_of_time: timePeriodMap[period_of_time],
+        }),
     });
 
     if (error)
