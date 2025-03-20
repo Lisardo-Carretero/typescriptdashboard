@@ -10,6 +10,8 @@ import AlertConfig from "../components/alertConfig";
 import UserButton from "../components/userButton";
 import LoginForm from "../components/loginForm";
 
+import GamepadIcon from "../public/gamepad.png"
+
 const devicePlaceholder = process.env.NEXT_PUBLIC_PLACEHOLDER_DEVICE || null;
 
 const Page = () => {
@@ -110,7 +112,16 @@ const Page = () => {
     <div className="min-h-screen bg-[#2E2A3B] text-white">
       <header className="bg-[#49416D] shadow-md fixed w-full top-0 z-40">
         <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4 ">
+            <button
+              onClick={() => alert("Gamepad button clicked!")}
+              className="flex items-center justify-center w-10 h-10 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 rounded-full text-white transition-all duration-300 shadow-md hover:shadow-md hover:shadow-[#D9BBA0]"
+              aria-label="Gamepad Button"
+            >
+              <img src="/Playstation_logo_colour.svg" alt="Gamepad" className="w-6 h-6" /> {/* Ajusta la ruta y tamaño */}
+            </button>
+          </div>
+          <div className="flex items-center space-x-3" onClick={() => window.location.reload()}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -122,10 +133,10 @@ const Page = () => {
             <h1 className="text-xl font-bold text-[#D9BBA0]">IoT Dashboard</h1>
           </div>
 
-          {/* Dropdown para selección de dispositivos */}
+          {/* Dropdown of devices */}
           <div className="order-3 md:order-2 py-1 relative" ref={dropdownRef}>
             {devices.length > 0 && (
-              <div className="inline-block">
+              <div className="inline-block border-[#D9BBA0] border rounded-lg">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                   className="flex items-center space-x-2 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 px-4 py-2 rounded-lg text-white transition-all duration-300"
@@ -134,7 +145,7 @@ const Page = () => {
                   <ChevronDown size={18} className={`transition-transform duration-300 ${dropdownOpen ? "transform rotate-180" : ""}`} />
                 </button>
 
-                {/* Lista desplegable de dispositivos */}
+                {/* The drop-down list */}
                 {dropdownOpen && (
                   <div className="absolute left-0 mt-1 w-full min-w-[200px] max-h-[300px] overflow-y-auto bg-[#49416D] rounded-lg border border-[#D9BBA0] shadow-lg animate-fadeIn z-50">
                     <div className="py-1">
@@ -158,14 +169,14 @@ const Page = () => {
             )}
           </div>
 
-          {/* UserButton en el lado derecho */}
+          {/* UserButton on the right side */}
           <div className="order-2 md:order-3">
             <UserButton onLoginClick={handleLoginClick} />
           </div>
         </div>
       </header>
 
-      {/* Modal de login mejorado con backdrop translúcido */}
+      {/* Login modal  */}
       {showLoginModal && (
         <div
           className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
@@ -179,7 +190,8 @@ const Page = () => {
             <LoginForm onClose={() => setShowLoginModal(false)} />
           </div>
         </div>
-      )}
+      )
+      }
 
       <div className="h-20"></div>
 
@@ -245,7 +257,7 @@ const Page = () => {
           </p>
         )}
       </main>
-    </div>
+    </div >
   );
 };
 
