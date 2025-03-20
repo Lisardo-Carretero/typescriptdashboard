@@ -9,12 +9,16 @@ interface JoystickData {
 
 interface GamepadHandlerProps {
     onJoystickMove: (data: JoystickData) => void;
+    onGamepadConnected?: () => void; // Nueva prop opcional
 }
 
-const GamepadHandler: React.FC<GamepadHandlerProps> = ({ onJoystickMove }) => {
+const GamepadHandler: React.FC<GamepadHandlerProps> = ({ onJoystickMove, onGamepadConnected }) => {
     useEffect(() => {
         const handleGamepadConnected = (event: GamepadEvent) => {
             console.log("Gamepad connected:", event.gamepad);
+            if (onGamepadConnected) {
+                onGamepadConnected(); // Llamar a la función cuando se detecte un mando
+            }
         };
 
         const handleGamepadDisconnected = () => {
@@ -28,7 +32,7 @@ const GamepadHandler: React.FC<GamepadHandlerProps> = ({ onJoystickMove }) => {
             window.removeEventListener("gamepadconnected", handleGamepadConnected);
             window.removeEventListener("gamepaddisconnected", handleGamepadDisconnected);
         };
-    }, []);
+    }, [onGamepadConnected]);
 
     useEffect(() => {
         let animationFrameId: number;

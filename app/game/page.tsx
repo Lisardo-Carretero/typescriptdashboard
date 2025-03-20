@@ -8,12 +8,10 @@ import LoginForm from "../../components/loginForm";
 import GamepadPage from "@/components/gamepadPage";
 
 const GamePage = () => {
-    const [joystickData, setJoystickData] = useState({ x: 0, y: 0 });
-
+    const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
     const [selectedCar, setSelectedCar] = useState<string | null>(null);
     const [cars, setCars] = useState<string[]>([]);
     const [dropdownOpenCar, setDropdownOpenCar] = useState<boolean>(false);
-    const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
     const dropdownRefCar = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
@@ -55,7 +53,8 @@ const GamePage = () => {
     };
 
     return (
-        <>
+        <div className="h-screen overflow-hidden flex flex-col">
+            {/* Header */}
             <header className="bg-[#49416D] shadow-md fixed w-full top-0 z-40">
                 <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
                     {/* Logo and Home Navigation */}
@@ -68,7 +67,7 @@ const GamePage = () => {
                     <div className="flex items-center space-x-4">
                         <button
                             onClick={() => router.push("/game")}
-                            className="flex items-center justify-center w-10 h-10 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 rounded-full text-white transition-all duration-300 shadow-md hover:shadow-md hover:shadow-[#D9BBA0]"
+                            className="flex items-center justify-center w-10 h-10 border border-[#D9BBA0] bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 rounded-full text-white transition-all duration-300 shadow-md hover:shadow-md hover:shadow-[#D9BBA0]"
                             aria-label="Gamepad Button"
                         >
                             <img src="/Playstation_logo_colour.svg" alt="Gamepad" className="w-6 h-6" />
@@ -83,7 +82,7 @@ const GamePage = () => {
                                     onClick={() => setDropdownOpenCar(!dropdownOpenCar)}
                                     className="flex items-center space-x-2 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 px-4 py-2 rounded-lg text-white transition-all duration-300"
                                 >
-                                    <span>{selectedCar || "Selecciona un coche"}</span>
+                                    <span>{selectedCar || "Test Joysticks"}</span>
                                     <ChevronDown
                                         size={18}
                                         className={`transition-transform duration-300 ${dropdownOpenCar ? "transform rotate-180" : ""
@@ -137,8 +136,10 @@ const GamePage = () => {
             </header>
 
             {/* Main Content */}
-            <GamepadPage />
-        </>
+            <main className="flex-1 overflow-hidden">
+                <GamepadPage />
+            </main>
+        </div>
     );
 };
 
