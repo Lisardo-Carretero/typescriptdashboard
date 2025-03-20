@@ -4,9 +4,12 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, CheckCircle2 } from "lucide-react";
 import UserButton from "@/components/userButton";
-import LoginForm from "@/components/loginForm";
+import LoginForm from "../../components/loginForm";
+import GamepadPage from "@/components/gamepadPage";
 
 const GamePage = () => {
+    const [joystickData, setJoystickData] = useState({ x: 0, y: 0 });
+
     const [selectedCar, setSelectedCar] = useState<string | null>(null);
     const [cars, setCars] = useState<string[]>([]);
     const [dropdownOpenCar, setDropdownOpenCar] = useState<boolean>(false);
@@ -60,15 +63,15 @@ const GamePage = () => {
                         className="flex items-center space-x-3 cursor-pointer"
                         onClick={() => router.push("/")}
                     >
-                        <h1 className="text-xl font-bold text-[#D9BBA0]">IoT Dashboard</h1>
+                        <h1 className="text-xl font-bold text-[#D9BBA0]">Gamepad Dashboard</h1>
                     </div>
-                    <div className="flex items-center space-x-4 ">
+                    <div className="flex items-center space-x-4">
                         <button
-                            onClick={() => window.location.href = "/game"}
+                            onClick={() => router.push("/game")}
                             className="flex items-center justify-center w-10 h-10 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 rounded-full text-white transition-all duration-300 shadow-md hover:shadow-md hover:shadow-[#D9BBA0]"
                             aria-label="Gamepad Button"
                         >
-                            <img src="/Playstation_logo_colour.svg" alt="Gamepad" className="w-6 h-6" /> {/* Ajusta la ruta y tamaño */}
+                            <img src="/Playstation_logo_colour.svg" alt="Gamepad" className="w-6 h-6" />
                         </button>
                     </div>
 
@@ -116,7 +119,7 @@ const GamePage = () => {
                         <UserButton onLoginClick={handleLoginClick} />
                     </div>
                 </div>
-                {/* Login modal  */}
+                {/* Login modal */}
                 {showLoginModal && (
                     <div
                         className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
@@ -130,14 +133,11 @@ const GamePage = () => {
                             <LoginForm onClose={() => setShowLoginModal(false)} />
                         </div>
                     </div>
-                )
-                }
+                )}
             </header>
 
             {/* Main Content */}
-            <div className="min-h-screen bg-[#2E2A3B] text-white flex items-center justify-center">
-                <h1 className="text-4xl font-bold text-[#D9BBA0]">Welcome to the Game Page!</h1>
-            </div>
+            <GamepadPage />
         </>
     );
 };

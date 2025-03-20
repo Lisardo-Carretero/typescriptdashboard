@@ -1,25 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 interface JoystickData {
     x: number;
     y: number;
 }
 
-const GamepadHandler = () => {
-    const [gamepadConnected, setGamepadConnected] = useState(false);
-    const [joystickData, setJoystickData] = useState<JoystickData>({ x: 0, y: 0 });
+interface GamepadHandlerProps {
+    onJoystickMove: (data: JoystickData) => void;
+}
 
+const GamepadHandler: React.FC<GamepadHandlerProps> = ({ onJoystickMove }) => {
     useEffect(() => {
         const handleGamepadConnected = (event: GamepadEvent) => {
             console.log("Gamepad connected:", event.gamepad);
-            setGamepadConnected(true);
         };
 
         const handleGamepadDisconnected = () => {
             console.log("Gamepad disconnected");
-            setGamepadConnected(false);
         };
 
         window.addEventListener("gamepadconnected", handleGamepadConnected);
@@ -41,29 +40,18 @@ const GamepadHandler = () => {
             if (gamepad) {
                 const x = gamepad.axes[0]; // Eje X del joystick izquierdo
                 const y = gamepad.axes[1]; // Eje Y del joystick izquierdo
-                setJoystickData({ x, y });
+                onJoystickMove({ x, y }); // Llamamos al callback con los datos actualizados
             }
 
             animationFrameId = requestAnimationFrame(updateJoystickData);
         };
 
-        if (gamepadConnected) {
-            animationFrameId = requestAnimationFrame(updateJoystickData);
-        }
+        animationFrameId = requestAnimationFrame(updateJoystickData);
 
         return () => cancelAnimationFrame(animationFrameId);
-    }, [gamepadConnected]);
+    }, [onJoystickMove]);
 
-    return (
-        <div className="p-4 bg-gray-800 text-white rounded-lg shadow-md">
-            <h2 className="text-xl font-bold mb-4">Gamepad Status</h2>
-            <p>{gamepadConnected ? "Gamepad connected" : "No gamepad connected"}</p>
-            <div className="mt-4">
-                <p>Joystick X: {joystickData.x.toFixed(2)}</p>
-                <p>Joystick Y: {joystickData.y.toFixed(2)}</p>
-            </div>
-        </div>
-    );
+    return null; // Este componente no necesita renderizar nada
 };
 
 export default GamepadHandler;
