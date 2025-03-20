@@ -67,72 +67,33 @@ export type Database = {
         }
         Relationships: []
       }
-      devices: {
+      car: {
         Row: {
+          created_at: string
           id: string
+          motor1: number | null
+          motor2: number | null
+          motor3: number | null
+          motor4: number | null
           name: string | null
         }
         Insert: {
+          created_at?: string
           id?: string
+          motor1?: number | null
+          motor2?: number | null
+          motor3?: number | null
+          motor4?: number | null
           name?: string | null
         }
         Update: {
+          created_at?: string
           id?: string
+          motor1?: number | null
+          motor2?: number | null
+          motor3?: number | null
+          motor4?: number | null
           name?: string | null
-        }
-        Relationships: []
-      }
-      devicesHasSensors: {
-        Row: {
-          id: string
-          name: string | null
-          pin: number
-          sensor_id: string
-        }
-        Insert: {
-          id?: string
-          name?: string | null
-          pin: number
-          sensor_id?: string
-        }
-        Update: {
-          id?: string
-          name?: string | null
-          pin?: number
-          sensor_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "DeviceHasSensor_id_fkey"
-            columns: ["id"]
-            isOneToOne: false
-            referencedRelation: "devices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "DeviceHasSensor_sensor_id_fkey"
-            columns: ["sensor_id"]
-            isOneToOne: false
-            referencedRelation: "sensors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sensors: {
-        Row: {
-          id: string
-          record_timestamp: string
-          value: number | null
-        }
-        Insert: {
-          id?: string
-          record_timestamp?: string
-          value?: number | null
-        }
-        Update: {
-          id?: string
-          record_timestamp?: string
-          value?: number | null
         }
         Relationships: []
       }
@@ -186,6 +147,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_all_cars: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          motor1: number
+          motor2: number
+          motor3: number
+          motor4: number
+          created_at: string
+        }[]
+      }
       get_average_value: {
         Args: {
           p_device_name: string
