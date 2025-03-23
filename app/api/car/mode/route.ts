@@ -3,21 +3,12 @@ import mqtt from "mqtt";
 
 // Variables de entorno para configurar el servidor MQTT
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://<your-mosquitto-server-ip>";
-const MQTT_TOPIC = process.env.MQTT_TOPIC_COMMAND || "test/topic"; // Define el topic en el que publicarás los mensajes
+const MQTT_TOPIC = process.env.MQTT_TOPIC_MODE || "car/mode"; // Define el topic en el que publicarás los mensajes
 const MQTT_USERNAME = process.env.MQTT_USERNAME || "your-username"; // Usuario para autenticación
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "your-password"; // Contraseña para autenticación
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
     try {
-        // Leer el cuerpo de la solicitud
-        const body = await req.json();
-
-        // Validar que el cuerpo contiene los datos necesarios
-        const { uuid, command } = body;
-        if (!uuid || !command) {
-            return NextResponse.json({ error: "Missing required fields: uuid or command" }, { status: 400 });
-        }
-
         // Configurar las opciones de conexión con usuario y contraseña
         const client = mqtt.connect(MQTT_BROKER_URL, {
             username: MQTT_USERNAME,
@@ -27,8 +18,8 @@ export async function POST(req: NextRequest) {
         client.on("connect", () => {
             console.log("Connected to MQTT broker");
 
-            // Publicar el mensaje en el topic
-            const message = JSON.stringify({ uuid, command });
+            // Publicar el mensaje para cambiar el modo
+            const message = JSON.stringify({ action: "toggle_mode" });
             client.publish(MQTT_TOPIC, message, (err) => {
                 if (err) {
                     console.error("Error publishing to MQTT:", err);
@@ -48,7 +39,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Responder con éxito
-        return NextResponse.json({ message: "Command received and published successfully" }, { status: 200 });
+        return NextResponse.json({ message: "Mode toggle command sent successfully" }, { status: 200 });
     } catch (error) {
         console.error("Error processing request:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });
