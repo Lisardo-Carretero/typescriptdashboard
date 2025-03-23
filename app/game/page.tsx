@@ -137,7 +137,7 @@ const GamePage = () => {
 
             {/* Main Content */}
             <main className="flex-1 overflow-hidden">
-                <GamepadPage />
+                <GamepadPage selectedCar={selectedCar} />
             </main>
         </div>
     );

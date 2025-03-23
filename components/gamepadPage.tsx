@@ -3,16 +3,19 @@
 import { useState, useRef } from "react";
 import GamepadHandler from "./gamepadHandler";
 import JoystickVisualizer from "./gamepadVisualizer";
+import { Bot } from "lucide-react";
 
-const GamepadPage = () => {
+interface GamepadPageProps {
+    selectedCar: string | null; // Recibimos el coche seleccionado como prop
+}
+
+const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
     const [joystickData, setJoystickData] = useState({ x: 0, y: 0 });
     const [history, setHistory] = useState<string[]>([]);
     const [showGamepadConnectedMessage, setShowGamepadConnectedMessage] = useState<boolean>(false);
-
-    // Referencia para almacenar el último valor añadido al historial
     const lastHistoryEntryRef = useRef<string | null>(null);
 
-    const handleJoystickMove = (data: { x: number; y: number }) => {
+    const handleJoystickMove = async (data: { x: number; y: number }) => {
         setJoystickData((prevData) => {
             const newEntry = `X-axis: ${data.x.toFixed(2)}, Y-axis: ${data.y.toFixed(2)}`;
 
@@ -20,10 +23,40 @@ const GamepadPage = () => {
             if ((prevData.x !== data.x || prevData.y !== data.y) && lastHistoryEntryRef.current !== newEntry) {
                 setHistory((prevHistory) => [...prevHistory, newEntry]);
                 lastHistoryEntryRef.current = newEntry; // Actualizamos la referencia
+
+                // Enviar el nuevo valor al endpoint
+                sendToEndpoint(data);
             }
 
             return data;
         });
+    };
+
+    const sendToEndpoint = async (data: { x: number; y: number }) => {
+        try {
+            if (!selectedCar) {
+                return;
+            }
+
+            const response = await fetch("/api/car/move", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: selectedCar, // Usamos el coche seleccionado
+                    command: { x: data.x, y: data.y }, // Enviamos las coordenadas como comando
+                }),
+            });
+
+            if (!response.ok) {
+                console.error("Failed to send data to /api/car/move:", await response.text());
+            } else {
+                console.log("Data sent successfully to /api/car/move");
+            }
+        } catch (error) {
+            console.error("Error sending data to /api/car/move:", error);
+        }
     };
 
     const handleGamepadConnected = () => {
@@ -46,7 +79,7 @@ const GamepadPage = () => {
             {/* Mensaje de mando conectado */}
             {showGamepadConnectedMessage && (
                 <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50">
-                    ¡Controller conected!
+                    ¡Controller connected!
                 </div>
             )}
 
@@ -57,7 +90,7 @@ const GamepadPage = () => {
                     <JoystickVisualizer x={joystickData.x} y={joystickData.y} />
                     {/* Mostrar valores numéricos */}
                     <div className="text-center bg-gray-800 p-4 rounded-lg shadow-md w-full">
-                        <h2 className="text-xl font-semibold mb-2 text-[#D9BBA0]">Joystick values </h2>
+                        <h2 className="text-xl font-semibold mb-2 text-[#D9BBA0]">Joystick values</h2>
                         <p className="text-lg">
                             <span className="font-bold">X-axis:</span> {joystickData.x.toFixed(2)}
                         </p>
@@ -65,6 +98,15 @@ const GamepadPage = () => {
                             <span className="font-bold">Y-axis:</span> {joystickData.y.toFixed(2)}
                         </p>
                     </div>
+                    {/* Botón para cambiar el modo */}
+                    <button
+                        onClick={clearHistory}
+                        className="mt-4 bg-[#6D4941] hover:bg-[#8A5A4F] text-white px-4 py-2 rounded-full shadow-md flex items-center justify-center transition-all"
+                        aria-label="Toggle Car Mode"
+                    >
+                        <Bot size={24} className="mr-2" />
+                        Toggle Mode
+                    </button>
                 </div>
 
                 {/* Chat de texto para el histórico */}

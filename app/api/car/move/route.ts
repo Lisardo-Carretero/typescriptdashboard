@@ -13,9 +13,9 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         // Validar que el cuerpo contiene los datos necesarios
-        const { uuid, command } = body;
-        if (!uuid || !command) {
-            return NextResponse.json({ error: "Missing required fields: uuid or command" }, { status: 400 });
+        const { name, command } = body;
+        if (!name || !command) {
+            return NextResponse.json({ error: "Missing required fields: name or command" }, { status: 400 });
         }
 
         // Configurar las opciones de conexión con usuario y contraseña
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
             console.log("Connected to MQTT broker");
 
             // Publicar el mensaje en el topic
-            const message = JSON.stringify({ uuid, command });
+            const message = JSON.stringify({ name, command });
             client.publish(MQTT_TOPIC, message, (err) => {
                 if (err) {
                     console.error("Error publishing to MQTT:", err);
