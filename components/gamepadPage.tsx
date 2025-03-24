@@ -24,7 +24,6 @@ const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
                 setHistory((prevHistory) => [...prevHistory, newEntry]);
                 lastHistoryEntryRef.current = newEntry; // Actualizamos la referencia
 
-                // Enviar el nuevo valor al endpoint
                 sendToEndpoint(data);
             }
 
@@ -37,7 +36,6 @@ const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
             if (!selectedCar) {
                 return;
             }
-
             const response = await fetch("/api/car/move", {
                 method: "POST",
                 headers: {
@@ -45,7 +43,7 @@ const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
                 },
                 body: JSON.stringify({
                     name: selectedCar, // Usamos el coche seleccionado
-                    command: { x: data.x, y: data.y }, // Enviamos las coordenadas como comando
+                    command: { x: data.x, y: -data.y }, // Enviamos las coordenadas como comando
                 }),
             });
 
@@ -69,6 +67,31 @@ const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
     const clearHistory = () => {
         setHistory([]);
         lastHistoryEntryRef.current = null; // Reiniciamos la referencia
+    };
+
+    const toggleMode = async () => {
+        try {
+            if (!selectedCar) {
+                return;
+            }
+            const response = await fetch("/api/car/mode", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: selectedCar, // Usamos el coche seleccionado
+                }),
+            });
+
+            if (!response.ok) {
+                console.error("Failed to toggle mode at /api/car/mode:", await response.text());
+            } else {
+                console.log("Mode toggled successfully for", selectedCar);
+            }
+        } catch (error) {
+            console.error("Error toggling mode at /api/car/mode:", error);
+        }
     };
 
     return (
@@ -95,12 +118,12 @@ const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
                             <span className="font-bold">X-axis:</span> {joystickData.x.toFixed(2)}
                         </p>
                         <p className="text-lg">
-                            <span className="font-bold">Y-axis:</span> {joystickData.y.toFixed(2)}
+                            <span className="font-bold">Y-axis:</span> {(-joystickData.y).toFixed(2)}
                         </p>
                     </div>
                     {/* Botón para cambiar el modo */}
                     <button
-                        onClick={clearHistory}
+                        onClick={toggleMode}
                         className="mt-4 bg-[#6D4941] hover:bg-[#8A5A4F] text-white px-4 py-2 rounded-full shadow-md flex items-center justify-center transition-all"
                         aria-label="Toggle Car Mode"
                     >

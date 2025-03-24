@@ -3,12 +3,21 @@ import mqtt from "mqtt";
 
 // Variables de entorno para configurar el servidor MQTT
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://<your-mosquitto-server-ip>";
-const MQTT_TOPIC = process.env.MQTT_TOPIC_MODE || "car/mode"; // Define el topic en el que publicarás los mensajes
+const MQTT_TOPIC = process.env.MQTT_TOPIC_MODE || "test/topic"; // Define el topic en el que publicarás los mensajes
 const MQTT_USERNAME = process.env.MQTT_USERNAME || "your-username"; // Usuario para autenticación
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "your-password"; // Contraseña para autenticación
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
     try {
+        // Leer el cuerpo de la solicitud
+        const body = await req.json();
+
+        // Validar que el cuerpo contiene el campo `name`
+        const { name } = body;
+        if (!name) {
+            return NextResponse.json({ error: "Missing required field: name" }, { status: 400 });
+        }
+
         // Configurar las opciones de conexión con usuario y contraseña
         const client = mqtt.connect(MQTT_BROKER_URL, {
             username: MQTT_USERNAME,
@@ -19,7 +28,7 @@ export async function GET(req: NextRequest) {
             console.log("Connected to MQTT broker");
 
             // Publicar el mensaje para cambiar el modo
-            const message = JSON.stringify({ action: "toggle_mode" });
+            const message = JSON.stringify({ action: "toggle_mode", name });
             client.publish(MQTT_TOPIC, message, (err) => {
                 if (err) {
                     console.error("Error publishing to MQTT:", err);
