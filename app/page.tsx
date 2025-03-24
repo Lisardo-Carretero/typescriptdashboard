@@ -19,7 +19,14 @@ const Page = () => {
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const [groupedData, setGroupedData] = useState<{ [device: string]: string[] }>({});
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false); // Nuevo estado
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Verificar si el usuario está autenticado
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token); // Si hay un token, el usuario está autenticado
+  }, []);
 
   // Función para obtener dispositivos únicos desde la API
   const getUniqueDevices = async () => {
@@ -123,11 +130,13 @@ const Page = () => {
           </div>
           <div className="flex items-center space-x-4 ">
             <button
-              onClick={() => window.location.href = "/game"}
-              className="flex items-center justify-center border border-[#D9BBA0] w-10 h-10 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 rounded-full text-white transition-all duration-300 shadow-md hover:shadow-md hover:shadow-[#D9BBA0]"
+              onClick={() => isAuthenticated && (window.location.href = "/game")}
+              disabled={!isAuthenticated} // Deshabilitar si no está autenticado
+              className={`flex items-center justify-center border border-[#D9BBA0] w-10 h-10 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 rounded-full text-white transition-all duration-300 shadow-md hover:shadow-md hover:shadow-[#D9BBA0] ${!isAuthenticated ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               aria-label="Gamepad Button"
             >
-              <img src="/Playstation_logo_colour.svg" alt="Gamepad" className="w-6 h-6" /> {/* Ajusta la ruta y tamaño */}
+              <img src="/Playstation_logo_colour.svg" alt="Gamepad" className="w-6 h-6" />
             </button>
           </div>
 

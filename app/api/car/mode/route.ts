@@ -28,15 +28,15 @@ export async function POST(req: NextRequest) {
             console.log("Connected to MQTT broker");
 
             // Publicar el mensaje para cambiar el modo
-            const message = JSON.stringify({ action: "toggle_mode", name });
-            client.publish(MQTT_TOPIC, message, (err) => {
+            const message = JSON.stringify({ action: "toggle_mode" });
+            client.publish(MQTT_TOPIC + `/${name}`, message, (err) => {
                 if (err) {
                     console.error("Error publishing to MQTT:", err);
                     client.end();
                     return NextResponse.json({ error: "Failed to publish to MQTT" }, { status: 500 });
                 }
 
-                console.log(`Published to MQTT topic ${MQTT_TOPIC}:`, message);
+                console.log(`Published to MQTT topic ${MQTT_TOPIC}/${name}:`, message);
                 client.end(); // Cerrar la conexión después de publicar
             });
         });
