@@ -3,7 +3,7 @@ import mqtt from "mqtt";
 
 // Variables de entorno para configurar el servidor MQTT
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://<your-mosquitto-server-ip>";
-const MQTT_TOPIC = process.env.MQTT_TOPIC_MODE || "test/topic"; // Define el topic en el que publicarás los mensajes
+const MQTT_TOPIC = process.env.MQTT_TOPIC_SLEEPMODE || "test/topic"; // Define el topic en el que publicarás los mensajes
 const MQTT_USERNAME = process.env.MQTT_USERNAME || "your-username"; // Usuario para autenticación
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD || "your-password"; // Contraseña para autenticación
 
@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
 
         // Validar que el cuerpo contiene el campo `name`
         const { name, action } = body;
+        console.log("Received request body:", action, name);
         if (!name) {
             return NextResponse.json({ error: "Missing required field: name" }, { status: 400 });
         }
