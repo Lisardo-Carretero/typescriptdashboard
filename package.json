@@ -25,7 +25,8 @@
     "react-email": "^3.0.7",
     "recharts": "^2.15.1",
     "resend": "^4.1.2",
-    "supabase": "^2.15.8"
+    "supabase": "^2.15.8",
+    "vis-network": "^9.1.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
