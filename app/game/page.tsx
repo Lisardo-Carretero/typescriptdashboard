@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, CheckCircle2 } from "lucide-react";
 import UserButton from "@/components/userButton";
 import LoginForm from "../../components/loginForm";
 import GamepadPage from "@/components/gamepadPage";
+import LoadingSpinner from "../../components/loadingSpinner"; // Crear un componente reutilizable
+
 
 const GamePage = () => {
     const [showLoginModal, setShowLoginModal] = useState<boolean>(false);

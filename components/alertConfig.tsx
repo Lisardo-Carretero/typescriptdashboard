@@ -2,6 +2,7 @@
 
 import { useEffect, useState, JSX } from "react";
 import AlertForm from "./alertForm";
+import AlertLoadingSkeleton from "./tableLoadingSkeleton";
 
 interface Alert {
     id?: number;
@@ -32,9 +33,12 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
     const [showModal, setShowModal] = useState<boolean>(false);
     const [user, setUser] = useState<any>(null);
     const [conditionsMet, setConditionsMet] = useState<ConditionsMet>({});
+    const [alertsLoading, setAlertsLoading] = useState<boolean>(true);
+    const [conditionsLoading, setConditionsLoading] = useState<boolean>(true);
 
     async function fetchAlerts() {
         try {
+            setAlertsLoading(true);
             const response = await fetch(`/api/device/${device}/alerts/all`);
             if (!response.ok) {
                 throw new Error('Error al cargar alertas');
@@ -43,6 +47,8 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
             setAlerts(alertsData);
         } catch (error) {
             console.error("Error cargando alertas:", error);
+        } finally {
+            setAlertsLoading(false);
         }
     }
     useEffect(() => {
@@ -75,16 +81,32 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
 
     useEffect(() => {
         const checkConditions = async () => {
-            const newConditionsMet: ConditionsMet = {};
-            for (const alert of alerts) {
-                const { isMet: boolean, currentValue: number } = await isConditionMet(alert);
-                newConditionsMet[alert.id!] = { isMet: boolean, currentValue: number };
+            if (alerts.length === 0) {
+                setConditionsLoading(false);
+                return;
             }
+
+            setConditionsLoading(true);
+            const newConditionsMet: ConditionsMet = {};
+
+            // Usar Promise.all para verificar todas las condiciones en paralelo
+            await Promise.all(alerts.map(async (alert) => {
+                try {
+                    const { isMet, currentValue } = await isConditionMet(alert);
+                    newConditionsMet[alert.id!] = { isMet, currentValue };
+                } catch (error) {
+                    console.error(`Error checking condition for alert ${alert.id}:`, error);
+                }
+            }));
+
             setConditionsMet(newConditionsMet);
+            setConditionsLoading(false);
         };
 
-        checkConditions();
-    }, [alerts]);
+        if (!alertsLoading) {
+            checkConditions();
+        }
+    }, [alerts, alertsLoading]);
 
     async function saveAlert(newAlert: Alert) {
         try {
@@ -117,6 +139,14 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
         }
 
         try {
+            // Primero marcar la alerta como eliminándose para la animación
+            setAlerts(alerts.map(alert =>
+                alert.id === id ? { ...alert, deleting: true } : alert
+            ));
+
+            // Breve retraso para que se vea la animación
+            await new Promise(resolve => setTimeout(resolve, 300));
+
             const response = await fetch('/api/alert', {
                 method: 'DELETE',
                 headers: {
@@ -132,6 +162,8 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
             setAlerts(alerts.filter(alert => alert.id !== id));
             alert("✅ Alert DELETED successfully!");
         } catch (error: any) {
+            // Restaurar el estado si hay error
+            setAlerts(alerts.map(alert => alert.id === id ? { ...alert, deleting: false } : alert));
             alert(`❌ Error: ${error?.message || 'UNKNOWN ERROR'}`);
         }
     }
@@ -161,21 +193,24 @@ export default function AlertConfig({ devices, groupedData, device }: AlertConfi
 
             {/* Listado de alertas */}
             <div className="mt-4">
-                {alerts.filter(alert => alert.device_name === device).length === 0 ? (
-                    <p className="text-center text-gray-300 py-4">There are no alerts configured</p>
+                {alertsLoading ? (
+                    <AlertLoadingSkeleton />
+                ) : alerts.filter(alert => alert.device_name === device).length === 0 ? (
+                    <p className="text-center text-gray-300 py-4 animate-fadeIn">There are no alerts configured</p>
                 ) : (
                     <ul className="space-y-2">
                         {alerts.filter(alert => alert.device_name === device).map((alert) => (
                             <li
                                 key={alert.id}
-                                className="bg-gray-700 p-3 rounded-lg flex justify-between items-center shadow-md border border-gray-600"
+                                className="bg-gray-700 p-3 rounded-lg flex justify-between items-center shadow-md border border-gray-600 transition-all duration-300 animate-fadeIn"
                             >
                                 <span className="flex items-center">
                                     <span
-                                        className="w-4 h-4 rounded-full mr-3"
+                                        className={`w-4 h-4 rounded-full mr-3 border transition-colors duration-500 ${conditionsLoading ? 'animate-pulse' : ''}`}
                                         style={{
-                                            backgroundColor: conditionsMet[alert.id!] && conditionsMet[alert.id!].isMet ? alert.color : 'transparent',
-                                            border: '1px solid',
+                                            backgroundColor: conditionsMet[alert.id!] && conditionsMet[alert.id!].isMet
+                                                ? alert.color
+                                                : 'transparent',
                                             borderColor: alert.color
                                         }}
                                         title={conditionsMet[alert.id!]

@@ -15,7 +15,6 @@ function connectMqtt() {
     });
 }
 
-
 export async function GET() {
     const client = connectMqtt();
     client.subscribe(MQTT_TOPIC_PORTAINER, (err) => {
@@ -31,9 +30,6 @@ export async function GET() {
         console.log("Received message:", topic, msg);
 
     });
-
-
-
 
     return NextResponse.json("h", { status: 200 });
 };

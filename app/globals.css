@@ -39,3 +39,65 @@ body {
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out forwards;
 }
+
+/* Añade estas animaciones a app/globals.css */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg) translate3d(0, 0, 0);
+  }
+
+  100% {
+    transform: rotate(360deg) translate3d(0, 0, 0);
+  }
+}
+
+@keyframes loadingBar {
+  0% {
+    width: 5%;
+    margin-left: 0;
+  }
+
+  50% {
+    width: 60%;
+  }
+
+  75% {
+    width: 35%;
+    margin-left: 50%;
+  }
+
+  100% {
+    width: 5%;
+    margin-left: 95%;
+  }
+}
+
+.animate-spin-orbit {
+  animation: spin linear infinite;
+}
+
+.animate-loadingBar {
+  animation: loadingBar 2.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(to right, #49416D 8%, #6D4941 18%, #49416D 33%);
+  background-size: 200% 100%;
+}
+
+.alert-item-exit {
+  opacity: 0;
+  transform: translateX(30px);
+  transition: all 0.3s ease-out;
+}
