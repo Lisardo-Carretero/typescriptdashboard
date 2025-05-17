@@ -11,6 +11,8 @@
   "dependencies": {
     "@react-email/components": "0.0.33",
     "@supabase/supabase-js": "^2.49.1",
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "date-fns": "^4.1.0",
@@ -25,7 +27,8 @@
     "react-email": "^3.0.7",
     "recharts": "^2.15.1",
     "resend": "^4.1.2",
-    "supabase": "^2.15.8"
+    "supabase": "^2.15.8",
+    "vis-network": "^9.1.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

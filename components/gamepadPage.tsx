@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import GamepadHandler from "./gamepadHandler";
 import JoystickVisualizer from "./gamepadVisualizer";
-import { Bot } from "lucide-react";
+import { Bot, BedDouble } from "lucide-react";
 
 interface GamepadPageProps {
     selectedCar: string | null; // Recibimos el coche seleccionado como prop
@@ -11,6 +11,8 @@ interface GamepadPageProps {
 
 const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
     const [joystickData, setJoystickData] = useState({ x: 0, y: 0 });
+    const [isManualMode, setIsManualMode] = useState(false);
+    const [isInSaveMode, setIsInSaveMode] = useState(false);
     const [history, setHistory] = useState<string[]>([]);
     const [showGamepadConnectedMessage, setShowGamepadConnectedMessage] = useState<boolean>(false);
     const lastHistoryEntryRef = useRef<string | null>(null);
@@ -74,13 +76,15 @@ const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
             if (!selectedCar) {
                 return;
             }
+            const newMode = !isManualMode; // Cambiar el modo actual
             const response = await fetch("/api/car/mode", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    name: selectedCar, // Usamos el coche seleccionado
+                    name: selectedCar,
+                    action: newMode ? "manual" : "automatic", // Enviar el modo al servidor
                 }),
             });
 
@@ -88,9 +92,39 @@ const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
                 console.error("Failed to toggle mode at /api/car/mode:", await response.text());
             } else {
                 console.log("Mode toggled successfully for", selectedCar);
+                setIsManualMode(newMode); // Actualizar el estado local
             }
         } catch (error) {
             console.error("Error toggling mode at /api/car/mode:", error);
+        }
+    };
+
+    // Función para activar el modo ahorro de batería	
+    const saveMode = async () => {
+        try {
+            if (!selectedCar) {
+                return;
+            }
+            const newMode = !isInSaveMode; // Cambiar el modo actual
+            const response = await fetch("/api/car/saveMode", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: selectedCar, // Enviamos el nombre del coche seleccionado
+                    action: newMode ? "activate" : "deactivate", // Enviar el modo al servidor
+                }),
+            });
+
+            if (!response.ok) {
+                console.error("Failed to activate save mode at /api/car/saveMode:", await response.text());
+            } else {
+                setIsInSaveMode(newMode);
+                console.log("Save mode activated successfully for", selectedCar);
+            }
+        } catch (error) {
+            console.error("Error activating save mode at /api/car/saveMode:", error);
         }
     };
 
@@ -124,11 +158,31 @@ const GamepadPage: React.FC<GamepadPageProps> = ({ selectedCar }) => {
                     {/* Botón para cambiar el modo */}
                     <button
                         onClick={toggleMode}
-                        className="mt-4 bg-[#6D4941] hover:bg-[#8A5A4F] text-white px-4 py-2 rounded-full shadow-md flex items-center justify-center transition-all"
+                        className={`mt-4 px-4 py-2 rounded-full shadow-md flex items-center justify-center transition-all ${isManualMode
+                            ? "bg-[#4A6D49] hover:bg-[#5A8A5F] text-white transform scale-95"
+                            : "bg-[#6D4941] hover:bg-[#8A5A4F] text-white transform scale-100"
+                            }`}
                         aria-label="Toggle Car Mode"
+                        style={{
+                            boxShadow: isManualMode ? "inset 0px 4px 6px rgba(0, 0, 0, 0.2)" : "0px 4px 6px rgba(0, 0, 0, 0.2)"
+                        }}
                     >
                         <Bot size={24} className="mr-2" />
-                        Toggle Mode
+                        {isManualMode ? "Manual Mode" : "Automatic Mode"}
+                    </button>
+                    <button
+                        onClick={saveMode}
+                        className={`mt-4 px-4 py-2 rounded-full shadow-md flex items-center justify-center transition-all ${isInSaveMode
+                            ? "bg-[#4A6D49] hover:bg-[#5A8A5F] text-white transform scale-95"
+                            : "bg-[#6D4941] hover:bg-[#8A5A4F] text-white transform scale-100"
+                            }`}
+                        aria-label="Toggle Sleep Mode"
+                        style={{
+                            boxShadow: isInSaveMode ? "inset 0px 4px 6px rgba(0, 0, 0, 0.2)" : "0px 4px 6px rgba(0, 0, 0, 0.2)"
+                        }}
+                    >
+                        <BedDouble size={24} className="mr-2" />
+                        {isInSaveMode ? "Sleep Mode On" : "Activate Sleep Mode"}
                     </button>
                 </div>
 
