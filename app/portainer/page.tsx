@@ -49,9 +49,7 @@ export default function WifiMeshPortainer() {
     // MQTT state
     const [mqttClient, setMqttClient] = useState<any>(null);
     const [connected, setConnected] = useState<boolean>(false);
-    const [mqttTopic, setMqttTopic] = useState<string>(
-        "mesh/network/topology"
-    );
+    const [mqttTopic, setMqttTopic] = useState<string>("network/topology");
     const [brokerUrl, setBrokerUrl] = useState<string>("mqtt://localhost:1883");
 
     // Network data
@@ -71,6 +69,12 @@ export default function WifiMeshPortainer() {
     // Add context menu state
     const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number } | null>(null);
     const [showContextMenu, setShowContextMenu] = useState<boolean>(false);
+
+    // Add state for feedback messages
+    const [actionStatus, setActionStatus] = useState<{
+        message: string;
+        type: 'success' | 'error' | 'info' | null;
+    }>({ message: '', type: null });
 
     // Connect to MQTT broker
     useEffect(() => {
@@ -241,50 +245,128 @@ export default function WifiMeshPortainer() {
         return "#FF0000"; // Very slow - red
     };
 
-    // Command handlers
-    const handleSetMaster = () => {
-        if (!selectedNode || !mqttClient || !connected) return;
+    // Command handlers without debug logging
+    const handleSetMaster = async () => {
+        if (!selectedNode) return;
 
-        const command = {
-            action: "setMaster",
-            nodeId: selectedNode,
-        };
+        setActionStatus({ message: `Setting node ${selectedNode} as master...`, type: 'info' });
 
-        mqttClient.publish("mesh/network/command", JSON.stringify(command));
+        try {
+            const response = await fetch('/api/portainer/setMaster', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    nodeId: selectedNode,
+                }),
+            });
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                const text = await response.text();
+                console.error("Failed to parse response as JSON:", parseError, text);
+                throw parseError;
+            }
+
+            if (response.ok) {
+                setActionStatus({
+                    message: `Set node ${selectedNode} (${getNodeLabelById(selectedNode)}) as master successfully! Topic: ${data.topic}`,
+                    type: 'success'
+                });
+            } else {
+                setActionStatus({
+                    message: `Failed to set master node: ${data.error || 'Unknown error'}`,
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error setting master node:', error);
+            setActionStatus({
+                message: `Network error while setting master node: ${error}`,
+                type: 'error'
+            });
+        }
     };
 
-    const handleDisconnectNode = () => {
-        if (!selectedNode || !mqttClient || !connected) return;
+    const handleDisconnectNode = async () => {
+        if (!selectedNode) return;
 
-        const command = {
-            action: "disconnectNode",
-            nodeId: selectedNode,
-        };
+        setActionStatus({ message: `Disconnecting node ${selectedNode}...`, type: 'info' });
 
-        mqttClient.publish("mesh/network/command", JSON.stringify(command));
+        try {
+            const response = await fetch('/api/portainer/disconnectNode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    nodeId: selectedNode,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setActionStatus({
+                    message: `Disconnected node ${selectedNode} (${getNodeLabelById(selectedNode)}) successfully! Topic: ${data.topic}`,
+                    type: 'success'
+                });
+            } else {
+                setActionStatus({
+                    message: `Failed to disconnect node: ${data.error || 'Unknown error'}`,
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error disconnecting node:', error);
+            setActionStatus({
+                message: `Network error while disconnecting node: ${error}`,
+                type: 'error'
+            });
+        }
     };
 
-    const handleGetDelays = () => {
-        if (!mqttClient || !connected) return;
+    // Update the node-to-node delay measurement function
+    const handleMeasureDelay = async () => {
+        if (!delaySourceNode || !delayTargetNode) return;
 
-        const command = {
-            action: "getDelays",
-        };
+        setActionStatus({ message: `Measuring delay between nodes ${delaySourceNode} and ${delayTargetNode}...`, type: 'info' });
 
-        mqttClient.publish("mesh/network/command", JSON.stringify(command));
-    };
+        try {
+            const response = await fetch('/api/portainer/delay', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from: delaySourceNode,
+                    to: delayTargetNode,
+                }),
+            });
 
-    // Add new handler for measuring delay between two specific nodes
-    const handleMeasureDelay = () => {
-        if (!delaySourceNode || !delayTargetNode || !mqttClient || !connected) return;
+            const data = await response.json();
 
-        const command = {
-            action: "delay",
-            from: delaySourceNode,
-            to: delayTargetNode
-        };
-
-        mqttClient.publish("mesh/network/command", JSON.stringify(command));
+            if (response.ok) {
+                setActionStatus({
+                    message: `Delay measurement between ${getNodeLabelById(delaySourceNode)} and ${getNodeLabelById(delayTargetNode)} requested successfully! Topic: ${data.topic}`,
+                    type: 'success'
+                });
+            } else {
+                setActionStatus({
+                    message: `Failed to measure delay: ${data.error || 'Unknown error'}`,
+                    type: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error measuring delay:', error);
+            setActionStatus({
+                message: `Network error while measuring delay: ${error}`,
+                type: 'error'
+            });
+        }
     };
 
     // Start node selection for delay measurement
@@ -332,9 +414,87 @@ export default function WifiMeshPortainer() {
         return node ? node.label : `Node ${id}`;
     };
 
-    // Context menu component
+    // Enhanced testApiDirectly function that tests all backend API endpoints
+    const testApiDirectly = async () => {
+        console.log("Starting API tests for all backend endpoints");
+        setActionStatus({ message: "Running API tests for all commands...", type: 'info' });
+
+        // Test results to track success/failure
+        const testResults = {
+            setMaster: false,
+            disconnectNode: false,
+            delay: false
+        };
+
+        try {
+            // 1. Test setMaster endpoint
+            console.log("Testing setMaster endpoint");
+            const setMasterResponse = await fetch('/api/portainer/setMaster', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodeId: selectedNode || 1 }),
+            });
+
+            const setMasterData = await setMasterResponse.json();
+            console.log("setMaster response:", setMasterData);
+            testResults.setMaster = setMasterResponse.ok;
+
+            // 2. Test disconnectNode endpoint
+            console.log("Testing disconnectNode endpoint");
+            const disconnectResponse = await fetch('/api/portainer/disconnectNode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nodeId: selectedNode || 2 }),
+            });
+
+            const disconnectData = await disconnectResponse.json();
+            console.log("disconnectNode response:", disconnectData);
+            testResults.disconnectNode = disconnectResponse.ok;
+
+            // 3. Test delay endpoint
+            console.log("Testing delay endpoint");
+            const delayResponse = await fetch('/api/portainer/delay', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    from: delaySourceNode || 1,
+                    to: delayTargetNode || 2
+                }),
+            });
+
+            const delayData = await delayResponse.json();
+            console.log("delay response:", delayData);
+            testResults.delay = delayResponse.ok;
+
+            // Prepare summary results
+            const successCount = Object.values(testResults).filter(Boolean).length;
+            const totalCount = Object.keys(testResults).length;
+
+            // Show summary feedback to user
+            setActionStatus({
+                message: `API tests completed: ${successCount}/${totalCount} successful. Check console for details.`,
+                type: successCount === totalCount ? 'success' : 'error'
+            });
+        } catch (error) {
+            console.error("API test error:", error);
+            setActionStatus({
+                message: `API tests failed with error: ${error}`,
+                type: 'error'
+            });
+        }
+    };
+
+    // Context menu component without debug logs
     const NodeContextMenu = () => {
-        if (!showContextMenu || !contextMenuPosition) return null;
+        if (!showContextMenu || !contextMenuPosition || !selectedNode) {
+            return null;
+        }
+
+        // Get the node details for display
+        const node = meshData.nodes.find(n => n.id === selectedNode);
+        if (!node) {
+            return null;
+        }
 
         return (
             <div
@@ -344,8 +504,9 @@ export default function WifiMeshPortainer() {
                     top: `${contextMenuPosition.y - 20}px`,
                 }}
                 onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
             >
-                <div className="flex flex-col space-y-2 min-w-[180px]">
+                <div className="flex flex-col space-y-2 min-w-[200px]">
                     {/* Pointer arrow */}
                     <div
                         className="absolute w-4 h-4 bg-[#3D3853] border-l border-t border-[#D9BBA0] transform rotate-45"
@@ -355,37 +516,46 @@ export default function WifiMeshPortainer() {
                         }}
                     ></div>
 
+                    {/* Node info at the top of the menu */}
+                    <div className="mb-2 pb-2 border-b border-gray-500">
+                        <p className="font-medium text-[#D9BBA0]">Node {node.id}: {node.label}</p>
+                        <p className="text-xs text-gray-300">
+                            Status: {node.status} • Role: {node.isMaster ? "Master" : "Client"}
+                        </p>
+                    </div>
+
                     <button
-                        className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-left"
+                        className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-left flex items-center"
                         onClick={(e) => {
                             handleSetMaster();
                             setShowContextMenu(false);
                             e.stopPropagation();
                         }}
                     >
+                        <img
+                            src="/sombrero.png"
+                            alt="Master"
+                            className="w-5 h-5 mr-2"
+                            onError={(e) => e.currentTarget.style.display = 'none'}
+                        />
                         Set as Master Node
                     </button>
 
                     <button
-                        className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-left"
+                        className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-left flex items-center"
                         onClick={(e) => {
                             handleDisconnectNode();
                             setShowContextMenu(false);
                             e.stopPropagation();
                         }}
                     >
+                        <img
+                            src="/disconect.png"
+                            alt="Disconnect"
+                            className="w-5 h-5 mr-2"
+                            onError={(e) => e.currentTarget.style.display = 'none'}
+                        />
                         Disconnect Node
-                    </button>
-
-                    <button
-                        className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-left"
-                        onClick={(e) => {
-                            handleGetDelays();
-                            setShowContextMenu(false);
-                            e.stopPropagation();
-                        }}
-                    >
-                        Update All Delays
                     </button>
                 </div>
             </div>
@@ -398,23 +568,30 @@ export default function WifiMeshPortainer() {
                 WiFi Mesh Network Portainer
             </h1>
 
-            {/* Connection Status */}
-            <div className="mb-4 flex items-center">
-                <div
-                    className={`w-4 h-4 rounded-full mr-2 ${connected ? "bg-green-500" : "bg-red-500"
-                        }`}
-                ></div>
-                <span>
-                    {connected
-                        ? "Connected to MQTT Broker"
-                        : "Disconnected"}
-                </span>
+            {/* Connection Status with Test API button */}
+            <div className="mb-4 flex items-center space-x-3">
+                <div className="flex items-center">
+                    <div
+                        className={`w-4 h-4 rounded-full mr-2 ${connected ? "bg-green-500" : "bg-red-500"}`}
+                    ></div>
+                    <span>
+                        {connected ? "Connected to MQTT Broker" : "Disconnected"}
+                    </span>
+                </div>
 
                 <button
                     onClick={loadMockData}
-                    className="ml-4 bg-blue-600 px-3 py-1 rounded text-sm"
+                    className="bg-blue-600 px-3 py-1 rounded text-sm"
                 >
                     Load Test Data
+                </button>
+
+                {/* Keep Test API button */}
+                <button
+                    onClick={testApiDirectly}
+                    className="bg-yellow-600 px-3 py-1 rounded text-sm"
+                >
+                    Test API
                 </button>
             </div>
 
@@ -507,6 +684,20 @@ export default function WifiMeshPortainer() {
                                 )}
                             </div>
                         ))}
+                </div>
+            )}
+
+            {/* Add status message display */}
+            {actionStatus.type && (
+                <div className={`mb-4 p-3 rounded-lg ${actionStatus.type === 'success' ? 'bg-green-600' :
+                    actionStatus.type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+                    }`}>
+                    <p className="flex items-center">
+                        {actionStatus.type === 'success' && <span className="mr-2">✅</span>}
+                        {actionStatus.type === 'error' && <span className="mr-2">❌</span>}
+                        {actionStatus.type === 'info' && <span className="mr-2">ℹ️</span>}
+                        {actionStatus.message}
+                    </p>
                 </div>
             )}
 
