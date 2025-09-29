@@ -2,9 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import supabase from '../../../../../../lib/supabaseClientCasa';
 
-export async function GET(request: NextRequest, { params }: { params: { clothId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ clothId: string }> }) {
     try {
-        const clothId = parseInt(params.clothId);
+        const { clothId: clothIdStr } = await params;
+        const clothId = parseInt(clothIdStr);
         let { data: Cloth, error } = await supabase
             .from('Cloth')
             .select('*')
