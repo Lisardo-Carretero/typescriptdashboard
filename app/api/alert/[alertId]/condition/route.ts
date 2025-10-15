@@ -23,17 +23,22 @@ interface Alert {
     period_of_time: string;
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ alertId: number }> }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ alertId: string }> }) {
     const { alertId } = await params;
 
-    if (!alertId) {
+    if (!alertId || alertId.trim() === '') {
         return NextResponse.json({ error: "alertId is required" }, { status: 400 });
+    }
+
+    const alertIdNumber = parseInt(alertId, 10);
+    if (isNaN(alertIdNumber) || alertIdNumber <= 0) {
+        return NextResponse.json({ error: "Invalid alertId format - must be a positive number" }, { status: 400 });
     }
     // Obtenemos todos los datos de la alerta
     const { data, error } = await supabase
         .from('alerts')
         .select('*')
-        .eq('id', alertId);
+        .eq('id', alertIdNumber);
     if (error) {
         return NextResponse.json({ error: "Error fetching conditions" }, { status: 500 });
     }
@@ -74,7 +79,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         const { error: updateError } = await supabase
             .from('alerts')
             .update({ notify: true })
-            .eq('id', alertId)
+            .eq('id', alertIdNumber)
             .select();
         if (updateError) {
             return NextResponse.json({ error: "Error updating the alert" }, { status: 500 });
