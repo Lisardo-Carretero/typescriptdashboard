@@ -31,29 +31,31 @@ export async function GET(
             );
         }
 
-        // Obtener todas las prendas del wardrobe con JOIN
+        // Obtener todas las prendas del wardrobe directamente
         const { data: clothsInWardrobe, error: clothsInWardrobeError } = await supabase
-            .from('WardrobeHasCloth')
-            .select('Cloth(*)')
-            .eq('wardrobeId', wardrobeId);
+            .from('Cloth')
+            .select(`
+                id,
+                name,
+                owner,
+                colour,
+                brand,
+                size,
+                tags,
+                notes,
+                created_at,
+                wardrobe_id
+            `)
+            .eq('wardrobe_id', wardrobeId)
+            .order('created_at', { ascending: false });
 
         if (clothsInWardrobeError) {
             console.error('Error al obtener prendas:', clothsInWardrobeError);
             throw clothsInWardrobeError;
         }
 
-        // Formatear los datos para el frontend
-        const formattedCloths = clothsInWardrobe?.map(item => ({
-            id: item.Cloth?.id,
-            name: item.Cloth?.name,
-            owner: item.Cloth?.owner,
-            colour: item.Cloth?.colour,
-            brand: item.Cloth?.brand,
-            size: item.Cloth?.size,
-            tags: item.Cloth?.tags || [],
-            notes: item.Cloth?.notes,
-            created_at: item.Cloth?.created_at
-        })).filter(cloth => cloth.id) || [];
+        // Los datos ya vienen en el formato correcto
+        const formattedCloths = clothsInWardrobe || [];
 
         // Respuesta exitosa
         return NextResponse.json({

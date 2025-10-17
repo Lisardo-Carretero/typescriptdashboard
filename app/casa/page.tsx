@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import AddClothModal from '../../components/casa/AddClothModal';
 import WardrobeGrid from '../../components/casa/WardrobeGrid';
+import { useWardrobes, useTags, useSupabaseRealtime, useTotalClothsCount } from '../../hooks/useCasaData';
 
 interface Tag {
     id: string;
@@ -14,123 +15,40 @@ interface Tag {
 interface Wardrobe {
     id: number;
     name: string;
-    location?: string;
-    description?: string;
+    location?: string | null;
+    house_id?: number | null;
+    house?: {
+        id: number;
+        name: string;
+        address: string | null;
+    } | null;
     itemCount?: number;
 }
 
 const CasaPage = () => {
     const router = useRouter();
 
-    // Tags cargados desde la base de datos
-    const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-    const [loadingTags, setLoadingTags] = useState(true);
+    // Usar React Query hooks para data fetching optimizado
+    const { data: wardrobes = [], isLoading: loadingWardrobes, error: wardrobesError } = useWardrobes();
+    const { data: availableTags = [], isLoading: loadingTags, error: tagsError } = useTags();
+    const { data: totalItems = 0, isLoading: loadingTotal } = useTotalClothsCount();
 
-    const [wardrobes, setWardrobes] = useState<Wardrobe[]>([]);
-    const [loadingWardrobes, setLoadingWardrobes] = useState(true);
-
-    // Estado para el total de prendas
-    const [totalItems, setTotalItems] = useState<number>(0);
-    const [loadingTotalItems, setLoadingTotalItems] = useState(true);
+    // Activar Supabase Realtime para sincronización automática
+    useSupabaseRealtime();
 
     // Estado para el modal de añadir prenda
     const [showAddItemModal, setShowAddItemModal] = useState(false);
 
-    // Cargar tags desde la base de datos
-    useEffect(() => {
-        const fetchTags = async () => {
-            try {
-                setLoadingTags(true);
-                const response = await fetch('/api/casa/tag/get');
-                if (response.ok) {
-                    const data = await response.json();
-                    setAvailableTags(data);
-                } else {
-                    console.warn('Error al obtener tags del servidor');
-                    setAvailableTags([]);
-                }
-            } catch (error) {
-                console.error('Error al cargar tags:', error);
-                setAvailableTags([]);
-            } finally {
-                setLoadingTags(false);
-            }
-        };
+    // Total de items calculado con hook optimizado
 
-        fetchTags();
-    }, []);
+    // Manejo de errores con mensajes amigables para el usuario
+    const hasErrors = wardrobesError || tagsError;
+    if (hasErrors) {
+        console.error('Error cargando datos:', { wardrobesError, tagsError });
+    }
 
-    // Cargar wardrobes desde la base de datos
-    useEffect(() => {
-        const fetchWardrobes = async () => {
-            try {
-                setLoadingWardrobes(true);
-                const response = await fetch('/api/casa/wardrobe/get');
-                if (response.ok) {
-                    const data = await response.json();
-                    setWardrobes(data);
-                } else {
-                    console.error('Error al obtener wardrobes del servidor');
-                    setWardrobes([]);
-                }
-            } catch (error) {
-                console.error('Error al cargar wardrobes:', error);
-                setWardrobes([]);
-            } finally {
-                setLoadingWardrobes(false);
-            }
-        };
-
-        fetchWardrobes();
-    }, []);
-
-    // Calcular el total de prendas de todos los wardrobes
-    const calculateTotalItems = async () => {
-        if (wardrobes.length === 0) {
-            setTotalItems(0);
-            setLoadingTotalItems(false);
-            return;
-        }
-
-        try {
-            setLoadingTotalItems(true);
-            const promises = wardrobes.map(async (wardrobe) => {
-                try {
-                    const response = await fetch(`/api/casa/wardrobe/${wardrobe.id}/totalCloths`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        return data.totalCloths || 0;
-                    }
-                    return 0;
-                } catch (error) {
-                    console.error(`Error al obtener total para wardrobe ${wardrobe.id}:`, error);
-                    return 0;
-                }
-            });
-
-            const totals = await Promise.all(promises);
-            const grandTotal = totals.reduce((sum, count) => sum + count, 0);
-            setTotalItems(grandTotal);
-        } catch (error) {
-            console.error('Error al calcular total de prendas:', error);
-            setTotalItems(0);
-        } finally {
-            setLoadingTotalItems(false);
-        }
-    };
-
-    // Ejecutar cálculo cuando se cargan los wardrobes
-    useEffect(() => {
-        if (!loadingWardrobes && wardrobes.length > 0) {
-            calculateTotalItems();
-        } else if (!loadingWardrobes && wardrobes.length === 0) {
-            setTotalItems(0);
-            setLoadingTotalItems(false);
-        }
-    }, [wardrobes, loadingWardrobes]);
-
+    // Handlers
     const handleWardrobeClick = (wardrobeId: number) => {
-        // Navegar a la vista detallada del wardrobe
         router.push(`/casa/wardrobe/${wardrobeId}`);
     };
 
@@ -143,10 +61,6 @@ const CasaPage = () => {
     };
 
     const handleModalSuccess = (wardrobeId: number) => {
-        // Recalcular totales después de añadir una prenda
-        calculateTotalItems();
-
-        // Forzar actualización de las cards (el WardrobeCard se actualizará automáticamente)
         console.log(`Prenda añadida exitosamente al wardrobe ${wardrobeId}`);
     };
 
@@ -161,6 +75,15 @@ const CasaPage = () => {
                     <p className="text-gray-800 text-lg">
                         Gestiona y organiza tu ropa con tags inteligentes
                     </p>
+
+                    {/* Mensaje de error amigable */}
+                    {hasErrors && (
+                        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <p className="text-yellow-800 text-sm">
+                                ⚠️ Algunos datos pueden no estar actualizados. Verificando conexión...
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Stats Overview */}
@@ -168,7 +91,7 @@ const CasaPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="text-center">
                             <div className="text-3xl font-bold text-blue-600">
-                                {loadingTotalItems ? (
+                                {loadingTotal || loadingWardrobes ? (
                                     <div className="animate-pulse bg-gray-200 h-8 w-16 mx-auto rounded"></div>
                                 ) : (
                                     totalItems
@@ -242,6 +165,8 @@ const CasaPage = () => {
                 loadingTags={loadingTags}
                 onSuccess={handleModalSuccess}
             />
+
+
         </div>
     );
 };

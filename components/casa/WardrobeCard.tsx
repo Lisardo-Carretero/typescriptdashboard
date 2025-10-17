@@ -1,49 +1,31 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+"use client";
+
+import { useWardrobeCount } from '../../hooks/useCasaData';
 
 interface WardrobeCardProps {
     wardrobe: {
         id: number;
         name: string;
-        description?: string;
-        location?: string;
+        location?: string | null;
+        house_id?: number | null;
+        house?: {
+            id: number;
+            name: string;
+            address: string | null;
+        } | null;
         itemCount?: number; // Ahora es opcional porque se carga dinámicamente
-        color?: string;
+        icon?: string; // Para compatibilidad
+        description?: string; // Opcional para WardrobeCard
     };
     onClick: (wardrobeId: number) => void;
     isLoading?: boolean;
 }
 
 const WardrobeCard: React.FC<WardrobeCardProps> = ({ wardrobe, onClick, isLoading = false }) => {
-    const [itemCount, setItemCount] = useState<number>(wardrobe.itemCount || 0);
-    const [loadingCount, setLoadingCount] = useState<boolean>(!wardrobe.itemCount);
-
-    // Cargar el número de prendas dinámicamente
-    useEffect(() => {
-        const fetchItemCount = async () => {
-            if (wardrobe.id && !isLoading) {
-                try {
-                    setLoadingCount(true);
-                    const response = await fetch(`/api/casa/wardrobe/${wardrobe.id}/totalCloths`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        setItemCount(data.totalCloths || 0);
-                    } else {
-                        console.warn(`Error al obtener itemCount para wardrobe ${wardrobe.id}`);
-                        setItemCount(0);
-                    }
-                } catch (error) {
-                    console.error(`Error al cargar itemCount para wardrobe ${wardrobe.id}:`, error);
-                    setItemCount(0);
-                } finally {
-                    setLoadingCount(false);
-                }
-            }
-        };
-
-        fetchItemCount();
-    }, [wardrobe.id, isLoading]);
+    // Usar el hook optimizado para obtener el conteo con cache
+    const { data: itemCount = 0, isLoading: loadingCount } = useWardrobeCount(wardrobe.id);
 
     if (isLoading) {
         return (
@@ -65,10 +47,6 @@ const WardrobeCard: React.FC<WardrobeCardProps> = ({ wardrobe, onClick, isLoadin
             onClick={() => onClick(wardrobe.id)}
             className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group border border-gray-100 hover:border-blue-300 transform hover:-translate-y-1 relative"
         >
-            {/* ID del wardrobe en la esquina superior derecha */}
-            <div className="absolute top-3 right-3 bg-gray-100 text-gray-600 text-xs font-mono px-2 py-1 rounded-md group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors">
-                #{wardrobe.id}
-            </div>
 
             <div className="p-6">
                 <div className="text-center">
@@ -77,9 +55,9 @@ const WardrobeCard: React.FC<WardrobeCardProps> = ({ wardrobe, onClick, isLoadin
                         {wardrobe.name}
                     </h3>
 
-                    {/* Descripción o ubicación */}
+                    {/* Ubicación */}
                     <p className="text-gray-600 text-sm mb-4 h-10 flex items-center justify-center">
-                        {wardrobe.description || wardrobe.location || 'Sin descripción'}
+                        {wardrobe.location || wardrobe.house?.name || 'Sin ubicación'}
                     </p>
 
                     {/* Contador de prendas */}

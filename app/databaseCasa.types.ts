@@ -50,17 +50,19 @@ export type Database = {
           owner: string
           size: string | null
           tags: Json[] | null
+          wardrobe_id: number
         }
         Insert: {
           brand?: string | null
           colour?: string | null
           created_at?: string
           id?: number
-          name: string
+          name?: string
           notes?: string | null
-          owner: string
+          owner?: string
           size?: string | null
           tags?: Json[] | null
+          wardrobe_id: number
         }
         Update: {
           brand?: string | null
@@ -72,6 +74,39 @@ export type Database = {
           owner?: string
           size?: string | null
           tags?: Json[] | null
+          wardrobe_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Cloth_wardrobe_id_fkey"
+            columns: ["wardrobe_id"]
+            isOneToOne: false
+            referencedRelation: "Wardrobe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      House: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: number
+          name: string
+          user_id: number
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: number
+          name: string
+          user_id: number
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: number
+          name?: string
+          user_id?: number
         }
         Relationships: []
       }
@@ -92,54 +127,29 @@ export type Database = {
       }
       Wardrobe: {
         Row: {
+          house_id: number | null
           id: number
           location: string | null
           name: string
         }
         Insert: {
+          house_id?: number | null
           id?: number
           location?: string | null
           name: string
         }
         Update: {
+          house_id?: number | null
           id?: number
           location?: string | null
           name?: string
         }
-        Relationships: []
-      }
-      WardrobeHasCloth: {
-        Row: {
-          clothId: number | null
-          created_at: string
-          id: string
-          wardrobeId: number | null
-        }
-        Insert: {
-          clothId?: number | null
-          created_at?: string
-          id?: string
-          wardrobeId?: number | null
-        }
-        Update: {
-          clothId?: number | null
-          created_at?: string
-          id?: string
-          wardrobeId?: number | null
-        }
         Relationships: [
           {
-            foreignKeyName: "WardrobeHasCloth_clothId_fkey"
-            columns: ["clothId"]
+            foreignKeyName: "Wardrobe_house_id_fkey"
+            columns: ["house_id"]
             isOneToOne: false
-            referencedRelation: "Cloth"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "WardrobeHasCloth_wardrobeId_fkey"
-            columns: ["wardrobeId"]
-            isOneToOne: false
-            referencedRelation: "Wardrobe"
+            referencedRelation: "House"
             referencedColumns: ["id"]
           },
         ]

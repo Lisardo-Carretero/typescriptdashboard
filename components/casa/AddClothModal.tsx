@@ -23,11 +23,15 @@ interface ClothingItem {
 interface Wardrobe {
     id: number;
     name: string;
-    description?: string;
-    location?: string;
+    location?: string | null;
+    house_id?: number | null;
+    house?: {
+        id: number;
+        name: string;
+        address: string | null;
+    } | null;
     icon?: string;
     itemCount?: number;
-    color?: string;
 }
 
 interface AddClothModalProps {
@@ -223,15 +227,21 @@ const AddClothModal = ({
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('Prenda añadida exitosamente:', result);
-
-                onSuccess(newItem.wardrobeId!);
-                handleClose();
-                alert(`¡Prenda "${itemData.name}" añadida exitosamente al wardrobe!`);
+                // Verificar la nueva estructura de respuesta de la API
+                if (result.success) {
+                    console.log('Prenda añadida exitosamente:', result);
+                    onSuccess(newItem.wardrobeId!);
+                    handleClose();
+                    alert(`¡Prenda "${itemData.name}" añadida exitosamente al wardrobe!`);
+                } else {
+                    throw new Error(result.error || 'Error al añadir la prenda');
+                }
             } else {
                 const errorResult = await response.json();
                 console.error('Error del servidor:', errorResult);
-                throw new Error(errorResult.error || `Error del servidor: ${response.status}`);
+                // Manejar la nueva estructura de respuesta de error de la API
+                const errorMessage = errorResult.error || errorResult.message || `Error del servidor: ${response.status}`;
+                throw new Error(errorMessage);
             }
         } catch (error) {
             console.error('Error al crear la prenda:', error);
@@ -348,7 +358,8 @@ const AddClothModal = ({
                                     <option value="">Seleccionar wardrobe</option>
                                     {wardrobes.map((wardrobe) => (
                                         <option key={wardrobe.id} value={wardrobe.id}>
-                                            {wardrobe.icon || '📦'} {wardrobe.name} (ID: {wardrobe.id})
+                                            {wardrobe.icon || '📦'} {wardrobe.name}
+                                            {wardrobe.location && ` - ${wardrobe.location}`}
                                         </option>
                                     ))}
                                 </select>

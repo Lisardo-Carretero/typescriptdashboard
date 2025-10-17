@@ -33,9 +33,9 @@ export async function GET(
 
         // Contar el total de prendas en el wardrobe
         const { count, error: countError } = await supabase
-            .from('WardrobeHasCloth')
-            .select('*', { count: 'exact', head: true })
-            .eq('wardrobeId', wardrobeId);
+            .from('Cloth')
+            .select('id', { count: 'exact', head: true })
+            .eq('wardrobe_id', wardrobeId);
 
         if (countError) {
             console.error('Error al contar prendas:', countError);
@@ -45,9 +45,9 @@ export async function GET(
         // Respuesta exitosa
         return NextResponse.json({
             success: true,
-            wardrobeId: wardrobeId,
+            count: count || 0,
             wardrobeName: wardrobe.name,
-            totalCloths: count || 0
+            message: `Se encontraron ${count || 0} prendas en el wardrobe`
         }, { status: 200 });
 
     } catch (error) {

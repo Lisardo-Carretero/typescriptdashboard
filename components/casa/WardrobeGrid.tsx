@@ -5,11 +5,16 @@ import WardrobeCard from './WardrobeCard';
 interface Wardrobe {
     id: number;
     name: string;
-    description?: string;
-    location?: string;
-    icon?: string;
+    location?: string | null;
+    house_id?: number | null;
+    house?: {
+        id: number;
+        name: string;
+        address: string | null;
+    } | null;
     itemCount?: number; // Opcional porque se carga dinámicamente
-    color?: string;
+    icon?: string; // Para compatibilidad con componentes existentes
+    description?: string; // Opcional para WardrobeCard
 }
 
 interface WardrobeGridProps {
@@ -35,8 +40,7 @@ const WardrobeGrid: React.FC<WardrobeGridProps> = ({
                             id: 0,
                             name: '',
                             description: '',
-                            itemCount: 0,
-                            color: ''
+                            itemCount: 0
                         }}
                         onClick={() => { }}
                         isLoading={true}

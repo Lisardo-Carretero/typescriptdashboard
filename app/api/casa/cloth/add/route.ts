@@ -14,22 +14,29 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const wardrobeId = body.wardrobeId;
+        // Normalizar el campo del wardrobe
+        const wardrobeId = body.wardrobeId || body.storageId;
 
-        // Validar que el wardrobe existe si se especifica
-        if (wardrobeId) {
-            const { data: wardrobe, error: wardrobeError } = await supabase
-                .from('Wardrobe')
-                .select('id')
-                .eq('id', wardrobeId)
-                .single();
+        // Validar que el wardrobe es obligatorio
+        if (!wardrobeId) {
+            return NextResponse.json(
+                { error: 'El wardrobe es obligatorio' },
+                { status: 400 }
+            );
+        }
 
-            if (wardrobeError || !wardrobe) {
-                return NextResponse.json(
-                    { error: 'El wardrobe especificado no existe' },
-                    { status: 400 }
-                );
-            }
+        // Validar que el wardrobe existe
+        const { data: wardrobe, error: wardrobeError } = await supabase
+            .from('Wardrobe')
+            .select('id, name')
+            .eq('id', wardrobeId)
+            .single();
+
+        if (wardrobeError || !wardrobe) {
+            return NextResponse.json(
+                { error: 'El wardrobe especificado no existe' },
+                { status: 400 }
+            );
         }
 
         // Preparar tags como array JSON
@@ -45,19 +52,31 @@ export async function POST(request: NextRequest) {
             return null;
         }).filter((name: any) => name !== null) || [];
 
-        // Insertar la prenda
+        // Insertar la prenda directamente con wardrobe_id
         const { data: clothInsert, error: clothError } = await supabase
             .from('Cloth')
             .insert({
                 name: body.name,
                 owner: body.category,
-                colour: body.color,
-                brand: body.brand,
-                notes: body.notes,
+                colour: body.color || null,
+                brand: body.brand || null,
+                notes: body.notes || null,
                 size: body.size || null,
-                tags: tagsArray
+                tags: tagsArray,
+                wardrobe_id: wardrobeId
             })
-            .select()
+            .select(`
+                id,
+                name,
+                owner,
+                colour,
+                brand,
+                size,
+                tags,
+                notes,
+                created_at,
+                wardrobe_id
+            `)
             .single();
 
         if (clothError) {
@@ -65,51 +84,7 @@ export async function POST(request: NextRequest) {
             throw clothError;
         }
 
-        // Si se especifica un wardrobe, crear la relación con rollback en caso de error
-        let relationData = null;
-        console.log('wardrobe ID:', wardrobeId);
-
-        if (wardrobeId && clothInsert) {
-            const { data: relationInsert, error: relationError } = await supabase
-                .from('WardrobeHasCloth')
-                .insert([{
-                    wardrobeId: wardrobeId,
-                    clothId: clothInsert.id
-                }])
-                .select()
-                .single();
-
-            if (relationError) {
-                console.error('Error al crear relación wardrobe-cloth:', relationError);
-
-                // ROLLBACK: Eliminar la prenda que se acaba de crear
-                console.log(`Ejecutando rollback para prenda ID: ${clothInsert.id}`);
-                const { error: deleteError } = await supabase
-                    .from('Cloth')
-                    .delete()
-                    .eq('id', clothInsert.id);
-
-                if (deleteError) {
-                    console.error('Error crítico: No se pudo hacer rollback de la prenda:', deleteError);
-                    return NextResponse.json({
-                        success: false,
-                        error: 'Error crítico: La prenda se creó pero no se pudo asociar al wardrobe y falló el rollback. Contacta al administrador.',
-                        clothId: clothInsert.id,
-                        details: process.env.NODE_ENV === 'development' ? { relationError, deleteError } : undefined
-                    }, { status: 500 });
-                }
-
-                console.log('Rollback exitoso: Prenda eliminada tras fallo en relación');
-                return NextResponse.json({
-                    success: false,
-                    error: 'No se pudo asociar la prenda al wardrobe seleccionado. La operación fue cancelada.',
-                    details: process.env.NODE_ENV === 'development' ? relationError : undefined
-                }, { status: 400 });
-            } else {
-                relationData = relationInsert;
-                console.log('Relación creada exitosamente:', relationData);
-            }
-        }
+        console.log('Prenda creada exitosamente:', clothInsert);
 
         // Respuesta exitosa
         return NextResponse.json({
@@ -121,9 +96,12 @@ export async function POST(request: NextRequest) {
                 owner: clothInsert.owner,
                 colour: clothInsert.colour,
                 brand: clothInsert.brand,
+                size: clothInsert.size,
                 tags: clothInsert.tags,
-                wardrobe_relation: relationData ? true : false,
-                wardrobe_id: wardrobeId || null
+                notes: clothInsert.notes,
+                created_at: clothInsert.created_at,
+                wardrobe_id: clothInsert.wardrobe_id,
+                wardrobe_name: wardrobe.name
             }
         }, { status: 201 });
 
