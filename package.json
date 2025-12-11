@@ -19,7 +19,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.477.0",
     "mqtt": "^5.10.4",
-    "next": "^15.5.4",
+    "next": "15.5.7",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",
     "react-circular-progressbar": "^2.2.0",
