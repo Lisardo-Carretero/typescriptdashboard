@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import AddClothModal from '../../components/casa/AddClothModal';
 import WardrobeGrid from '../../components/casa/WardrobeGrid';
-import NoHousesForm from '../../components/casa/NoHousesForm';
 import UserProfileButton from '../../components/UserProfileButton';
-import { useWardrobes, useTags, useSupabaseRealtime, useTotalClothsCount, useUserHouses } from '../../hooks/useCasaData';
+import { useWardrobes, useTags, useTotalClothsCount, useUserHouses } from '../../hooks/useCasaData';
 
 interface Tag {
     id: string;
@@ -31,8 +30,7 @@ interface Wardrobe {
 const CasaPage = () => {
     const router = useRouter();
 
-    // Verificar autenticación
-    const { user, loading: authLoading } = useAuth();
+    const { user } = useAuth();
 
     // Usar React Query hooks para data fetching optimizado
     const { data: houses = [], isLoading: loadingHouses } = useUserHouses();
@@ -40,8 +38,6 @@ const CasaPage = () => {
     const { data: availableTags = [], isLoading: loadingTags, error: tagsError } = useTags();
     const { data: totalItems = 0, isLoading: loadingTotal } = useTotalClothsCount();
 
-    // Activar Supabase Realtime para sincronización automática
-    useSupabaseRealtime();
 
     // Estado para el modal de añadir prenda
     const [showAddItemModal, setShowAddItemModal] = useState(false);
@@ -71,38 +67,6 @@ const CasaPage = () => {
         console.log(`Prenda añadida exitosamente al wardrobe ${wardrobeId}`);
     };
 
-    // Efecto para redirigir si no hay usuario después de cargar
-    useEffect(() => {
-        if (!authLoading && !user) {
-            console.log('No user found, redirecting to login');
-            router.push('/login');
-        }
-    }, [authLoading, user, router]);
-
-    // Mostrar loading mientras se carga la autenticación o los datos iniciales
-    if (authLoading || loadingHouses) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Cargando tu Casa...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Si no hay usuario, mostrar loading mientras redirige
-    if (!user) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Redirigiendo a login...</p>
-                </div>
-            </div>
-        );
-    }
-
     // Mostrar loading mientras se cargan las casas
     if (loadingHouses) {
         return (
@@ -113,11 +77,6 @@ const CasaPage = () => {
                 </div>
             </div>
         );
-    }
-
-    // Si el usuario no tiene casas, mostrar formulario para crear una
-    if (houses.length === 0) {
-        return <NoHousesForm />;
     }
 
     return (

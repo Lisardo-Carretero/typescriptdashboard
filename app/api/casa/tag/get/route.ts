@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
-import supabase from '../../../../../lib/supabaseClientCasa';
-import { Database } from '../../../../databaseCasa.types';
+import pool from '../../../../../lib/dbCasa';
 
-type Tag = Database['public']['Tables']['tag']['Row'];
-
-// Colores predefinidos para tags
 const TAG_COLORS = [
     'bg-blue-100 text-blue-800',
     'bg-green-100 text-green-800',
@@ -20,49 +16,24 @@ const TAG_COLORS = [
 
 export async function GET() {
     try {
-        const { data: tags, error } = await supabase
-            .from('tag')
-            .select('*')
-            .order('name', { ascending: true });
+        const { rows: tags } = await pool.query(
+            `SELECT id, name FROM public.tag ORDER BY name ASC`
+        );
 
-        if (error) {
-            console.error('Error fetching tags from Supabase:', error);
-            return NextResponse.json({
-                success: false,
-                error: 'Error al obtener los tags',
-                data: [],
-                details: process.env.NODE_ENV === 'development' ? error.message : undefined
-            }, { status: 500 });
+        if (tags.length === 0) {
+            return NextResponse.json({ success: true, message: 'No se encontraron tags', data: [], count: 0 });
         }
 
-        if (!tags || tags.length === 0) {
-            return NextResponse.json({
-                success: true,
-                message: 'No se encontraron tags',
-                data: [],
-                count: 0
-            }, { status: 200 });
-        }
-
-        // Asignar colores a los tags de manera consistente
-        const tagsWithColors = tags.map((tag: Tag, index: number) => ({
+        const tagsWithColors = tags.map((tag, index) => ({
             id: tag.id.toString(),
             name: tag.name,
             color: TAG_COLORS[index % TAG_COLORS.length]
         }));
 
-        return NextResponse.json({
-            success: true,
-            count: tagsWithColors.length,
-            data: tagsWithColors
-        }, { status: 200 });
+        return NextResponse.json({ success: true, count: tagsWithColors.length, data: tagsWithColors });
 
     } catch (error) {
         console.error('Unexpected error fetching tags:', error);
-        return NextResponse.json({
-            success: false,
-            error: 'Error interno del servidor',
-            data: []
-        }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Error interno del servidor', data: [] }, { status: 500 });
     }
 }

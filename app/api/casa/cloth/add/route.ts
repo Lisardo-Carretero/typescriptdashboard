@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import supabase from "../../../../../lib/supabaseClientCasa";
+import pool from "../../../../../lib/dbCasa";
 
 export async function POST(request: NextRequest) {
     try {
-        // Parsear el cuerpo de la petición
         const body = await request.json();
 
-        // Validar campos obligatorios
         if (!body.name || !body.category) {
             return NextResponse.json(
                 { error: 'Los campos name y category son obligatorios' },
@@ -14,104 +12,65 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Normalizar el campo del wardrobe
         const wardrobeId = body.wardrobeId || body.storageId;
-
-        // Validar que el wardrobe es obligatorio
         if (!wardrobeId) {
-            return NextResponse.json(
-                { error: 'El wardrobe es obligatorio' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'El wardrobe es obligatorio' }, { status: 400 });
         }
 
-        // Validar que el wardrobe existe
-        const { data: wardrobe, error: wardrobeError } = await supabase
-            .from('Wardrobe')
-            .select('id, name')
-            .eq('id', wardrobeId)
-            .single();
-
-        if (wardrobeError || !wardrobe) {
-            return NextResponse.json(
-                { error: 'El wardrobe especificado no existe' },
-                { status: 400 }
-            );
+        const { rows: wardrobeRows } = await pool.query(
+            `SELECT id, name FROM public."Wardrobe" WHERE id = $1`,
+            [wardrobeId]
+        );
+        if (wardrobeRows.length === 0) {
+            return NextResponse.json({ error: 'El wardrobe especificado no existe' }, { status: 400 });
         }
+        const wardrobe = wardrobeRows[0];
 
-        // Preparar tags como array JSON
-        const tagsArray = body.tags?.map((tag: any) => {
-            // Si es un objeto con propiedad name, extraer el name
-            if (typeof tag === 'object' && tag.name) {
-                return tag.name;
-            }
-            // Si es un string, usarlo directamente
-            if (typeof tag === 'string') {
-                return tag;
-            }
-            return null;
-        }).filter((name: any) => name !== null) || [];
+        const tagsArray = (body.tags || [])
+            .map((tag: any) => (typeof tag === 'object' && tag.name ? tag.name : typeof tag === 'string' ? tag : null))
+            .filter((t: any) => t !== null);
+        const tagsJsonArray = tagsArray.map((tag: string) => JSON.stringify(tag));
 
-        // Insertar la prenda directamente con wardrobe_id
-        const { data: clothInsert, error: clothError } = await supabase
-            .from('Cloth')
-            .insert({
-                name: body.name,
-                owner: body.category,
-                colour: body.color || null,
-                brand: body.brand || null,
-                notes: body.notes || null,
-                size: body.size || null,
-                tags: tagsArray,
-                wardrobe_id: wardrobeId
-            })
-            .select(`
-                id,
-                name,
-                owner,
-                colour,
-                brand,
-                size,
-                tags,
-                notes,
-                created_at,
-                wardrobe_id
-            `)
-            .single();
+        await pool.query('BEGIN');
 
-        if (clothError) {
-            console.error('Error al insertar prenda:', clothError);
-            throw clothError;
-        }
+        const { rows } = await pool.query(
+            `INSERT INTO public."Cloth" (name, owner, colour, brand, notes, size, tags)
+             VALUES ($1, $2, $3, $4, $5, $6, $7::json[])
+             RETURNING id, name, owner, colour, brand, size, tags, notes, created_at`,
+            [
+                body.name,
+                body.category,
+                body.color || null,
+                body.brand || null,
+                body.notes || null,
+                body.size || null,
+                tagsJsonArray
+            ]
+        );
 
-        console.log('Prenda creada exitosamente:', clothInsert);
+        const cloth = rows[0];
 
-        // Respuesta exitosa
+        await pool.query(
+            `INSERT INTO public."WardrobeHasCloth" ("wardrobeId", "clothId")
+             VALUES ($1, $2)`,
+            [wardrobeId, cloth.id]
+        );
+
+        await pool.query('COMMIT');
+
         return NextResponse.json({
             success: true,
             message: 'Prenda añadida exitosamente',
-            data: {
-                id: clothInsert.id,
-                name: clothInsert.name,
-                owner: clothInsert.owner,
-                colour: clothInsert.colour,
-                brand: clothInsert.brand,
-                size: clothInsert.size,
-                tags: clothInsert.tags,
-                notes: clothInsert.notes,
-                created_at: clothInsert.created_at,
-                wardrobe_id: clothInsert.wardrobe_id,
-                wardrobe_name: wardrobe.name
-            }
+            data: { ...cloth, wardrobe_id: wardrobeId, wardrobe_name: wardrobe.name }
         }, { status: 201 });
 
     } catch (error) {
+        try {
+            await pool.query('ROLLBACK');
+        } catch (rollbackError) {
+            console.error('Error en rollback al crear prenda:', rollbackError);
+        }
         console.error('Error al crear prenda:', error);
-
-        return NextResponse.json({
-            success: false,
-            error: 'Error interno del servidor al crear la prenda',
-            details: process.env.NODE_ENV === 'development' ? error : undefined
-        }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Error interno del servidor al crear la prenda' }, { status: 500 });
     }
 }

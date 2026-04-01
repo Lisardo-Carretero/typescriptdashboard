@@ -7,9 +7,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useMemo } from 'react';
-import supabase from '../lib/supabaseClientCasa';
 import { authUtils } from '../lib/supabaseAuth';
-import { useAuth } from '../contexts/AuthContext';
 
 // Tipos TypeScript
 interface Wardrobe {
@@ -46,8 +44,13 @@ interface Cloth {
 // Función utilitaria para hacer peticiones autenticadas
 const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
     try {
-        const session = await authUtils.getCurrentSession();
-        const token = session?.access_token;
+        let token: string | undefined;
+        try {
+            const session = await authUtils.getCurrentSession();
+            token = session?.access_token;
+        } catch (sessionError) {
+            console.warn('No se pudo obtener sesión, continuando en modo público');
+        }
 
         const headers = {
             'Content-Type': 'application/json',
@@ -80,8 +83,6 @@ export const queryKeys = {
 
 // Hook para obtener las casas del usuario autenticado
 export const useUserHouses = () => {
-    const { user, loading: authLoading } = useAuth();
-
     return useQuery({
         queryKey: queryKeys.houses,
         queryFn: async (): Promise<any[]> => {
@@ -102,7 +103,7 @@ export const useUserHouses = () => {
                 return [] as any[];
             }
         },
-        enabled: !!user && !authLoading, // Solo ejecutar si hay usuario autenticado
+        enabled: true,
         staleTime: 10 * 60 * 1000, // 10 minutos - las casas cambian menos frecuentemente
         gcTime: 30 * 60 * 1000, // 30 minutos
     });
@@ -110,8 +111,6 @@ export const useUserHouses = () => {
 
 // Hook para obtener todos los wardrobes del usuario autenticado
 export const useWardrobes = () => {
-    const { user, loading: authLoading } = useAuth();
-
     return useQuery({
         queryKey: queryKeys.wardrobes,
         queryFn: async (): Promise<Wardrobe[]> => {
@@ -132,7 +131,7 @@ export const useWardrobes = () => {
                 return [] as Wardrobe[];
             }
         },
-        enabled: !!user && !authLoading, // Solo ejecutar si hay usuario autenticado
+        enabled: true,
         staleTime: 5 * 60 * 1000, // 5 minutos
         gcTime: 10 * 60 * 1000, // 10 minutos
     });
@@ -199,8 +198,6 @@ export const useWardrobesWithCounts = () => {
     };
 };// Hook para obtener todos los tags
 export const useTags = () => {
-    const { user, loading: authLoading } = useAuth();
-
     return useQuery({
         queryKey: queryKeys.tags,
         queryFn: async (): Promise<Tag[]> => {
@@ -221,7 +218,7 @@ export const useTags = () => {
                 return [] as Tag[];
             }
         },
-        enabled: !!user && !authLoading, // Solo ejecutar si hay usuario autenticado
+        enabled: true,
         staleTime: 10 * 60 * 1000, // Tags cambian menos frecuentemente
         gcTime: 30 * 60 * 1000, // 30 minutos
     });
@@ -324,58 +321,7 @@ export const useAddCloth = () => {
     });
 };
 
-// Hook para configurar Supabase Realtime
-export const useSupabaseRealtime = () => {
-    const queryClient = useQueryClient();
-
-    useEffect(() => {
-        // Suscribirse a cambios en la tabla Wardrobe
-        const wardrobeChannel = supabase
-            .channel('wardrobe-changes')
-            .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'Wardrobe' },
-                (payload: any) => {
-                    console.log('Cambio en Wardrobe:', payload);
-                    // Invalidar wardrobes para refrescar datos
-                    queryClient.invalidateQueries({ queryKey: queryKeys.wardrobes });
-                }
-            )
-            .subscribe();
-
-        // Suscribirse a cambios en la tabla Cloth
-        const clothChannel = supabase
-            .channel('cloth-changes')
-            .on('postgres_changes',
-                { event: '*', schema: 'public', table: 'Cloth' },
-                (payload: any) => {
-                    console.log('Cambio en Cloth:', payload);
-                    // Invalidar conteos y listas de prendas
-                    queryClient.invalidateQueries({ queryKey: queryKeys.cloths });
-
-                    // Si conocemos el wardrobe_id, invalidar específicamente
-                    if (payload.new && 'wardrobe_id' in payload.new) {
-                        const wardrobeId = (payload.new as any).wardrobe_id;
-                        queryClient.invalidateQueries({ queryKey: queryKeys.wardrobeCount(wardrobeId) });
-                        queryClient.invalidateQueries({ queryKey: queryKeys.clothsByWardrobe(wardrobeId) });
-                    }
-
-                    // También invalidar si se eliminó una prenda
-                    if (payload.old && 'wardrobe_id' in payload.old) {
-                        const wardrobeId = (payload.old as any).wardrobe_id;
-                        queryClient.invalidateQueries({ queryKey: queryKeys.wardrobeCount(wardrobeId) });
-                        queryClient.invalidateQueries({ queryKey: queryKeys.clothsByWardrobe(wardrobeId) });
-                    }
-                }
-            )
-            .subscribe();
-
-        // Cleanup al desmontar
-        return () => {
-            wardrobeChannel.unsubscribe();
-            clothChannel.unsubscribe();
-        };
-    }, [queryClient]);
-};
+// Realtime eliminado — la BD es local (PostgreSQL directo, sin Supabase)
 
 // Hook para obtener el total de todas las prendas
 export const useTotalClothsCount = () => {

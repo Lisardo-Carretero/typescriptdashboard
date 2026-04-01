@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import supabase from "../../../../../lib/supabaseClientCasa";
-import { Database } from "../../../../databaseCasa.types";
-
-type Cloth = Database['public']['Tables']['Cloth']['Row'];
+import pool from "../../../../../lib/dbCasa";
 
 export async function GET(request: NextRequest) {
     try {
@@ -11,91 +8,62 @@ export async function GET(request: NextRequest) {
         const owner = searchParams.get('owner');
         const limit = searchParams.get('limit');
 
-        let query = supabase
-            .from('Cloth')
-            .select(`
-                id,
-                name,
-                owner,
-                colour,
-                brand,
-                size,
-                tags,
-                notes,
-                created_at,
-                wardrobe_id,
-                Wardrobe (
-                    id,
-                    name,
-                    location
-                )
-            `);
+        const conditions: string[] = [];
+        const values: any[] = [];
+        let idx = 1;
 
-        // Aplicar filtros opcionales
         if (wardrobeId) {
-            query = query.eq('wardrobe_id', parseInt(wardrobeId));
+            conditions.push(`whc."wardrobeId" = $${idx++}`);
+            values.push(parseInt(wardrobeId));
         }
-
         if (owner) {
-            query = query.eq('owner', owner);
+            conditions.push(`c.owner = $${idx++}`);
+            values.push(owner);
         }
 
-        // Aplicar límite si se especifica
-        if (limit) {
-            query = query.limit(parseInt(limit));
-        }
+        const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+        const limitClause = limit ? `LIMIT $${idx++}` : '';
+        if (limit) values.push(parseInt(limit));
 
-        // Ordenar por fecha de creación (más recientes primero)
-        query = query.order('created_at', { ascending: false });
+        const query = `
+            SELECT
+                c.id, c.name, c.owner, c.colour, c.brand, c.size,
+                c.tags, c.notes, c.created_at,
+                whc."wardrobeId" as wardrobe_id,
+                w.id AS w_id, w.name AS w_name, w.location AS w_location
+            FROM public."Cloth" c
+            LEFT JOIN public."WardrobeHasCloth" whc ON whc."clothId" = c.id
+            LEFT JOIN public."Wardrobe" w ON w.id = whc."wardrobeId"
+            ${where}
+            ORDER BY c.created_at DESC
+            ${limitClause}
+        `;
 
-        const { data: cloths, error } = await query;
+        const { rows } = await pool.query(query, values);
 
-        if (error) {
-            console.error('Error fetching cloths:', error);
-            return NextResponse.json(
-                {
-                    error: 'Error al obtener las prendas',
-                    details: process.env.NODE_ENV === 'development' ? error.message : undefined
-                },
-                { status: 500 }
-            );
-        }
-
-        if (!cloths || cloths.length === 0) {
-            return NextResponse.json({
-                success: true,
-                message: 'No se encontraron prendas',
-                data: [],
-                count: 0
-            }, { status: 200 });
-        }
-
-        // Formatear la respuesta
-        const formattedCloths = cloths.map(cloth => ({
-            ...cloth,
-            wardrobe: cloth.Wardrobe ? {
-                id: cloth.Wardrobe.id,
-                name: cloth.Wardrobe.name,
-                location: cloth.Wardrobe.location
-            } : null
+        const cloths = rows.map(r => ({
+            id: r.id,
+            name: r.name,
+            owner: r.owner,
+            colour: r.colour,
+            brand: r.brand,
+            size: r.size,
+            tags: r.tags,
+            notes: r.notes,
+            created_at: r.created_at,
+            wardrobe_id: r.wardrobe_id,
+            wardrobe: r.w_id ? { id: r.w_id, name: r.w_name, location: r.w_location } : null
         }));
 
         return NextResponse.json({
             success: true,
-            count: formattedCloths.length,
-            data: formattedCloths,
-            filters: {
-                wardrobe_id: wardrobeId,
-                owner: owner,
-                limit: limit
-            }
-        }, { status: 200 });
+            count: cloths.length,
+            data: cloths,
+            filters: { wardrobe_id: wardrobeId, owner, limit }
+        });
 
     } catch (error) {
-        console.error('Unexpected error fetching cloths:', error);
-        return NextResponse.json(
-            { error: 'Error interno del servidor' },
-            { status: 500 }
-        );
+        console.error('Error fetching cloths:', error);
+        return NextResponse.json({ error: 'Error al obtener las prendas' }, { status: 500 });
     }
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import supabase from "../../../../../../lib/supabaseClientCasa";
+import pool from "../../../../../../lib/dbCasa";
 
 export async function GET(
     request: NextRequest,
@@ -17,65 +17,46 @@ export async function GET(
             );
         }
 
-        // Verificar que el wardrobe existe
-        const { data: wardrobe, error: wardrobeError } = await supabase
-            .from('Wardrobe')
-            .select('*')
-            .eq('id', wardrobeId)
-            .single();
+        const { rows: wardrobeRows } = await pool.query(
+            `SELECT id, name, location FROM public."Wardrobe" WHERE id = $1`,
+            [wardrobeId]
+        );
 
-        if (wardrobeError || !wardrobe) {
-            return NextResponse.json(
-                { error: 'Wardrobe no encontrado' },
-                { status: 404 }
-            );
+        if (wardrobeRows.length === 0) {
+            return NextResponse.json({ error: 'Wardrobe no encontrado' }, { status: 404 });
         }
 
-        // Obtener todas las prendas del wardrobe directamente
-        const { data: clothsInWardrobe, error: clothsInWardrobeError } = await supabase
-            .from('Cloth')
-            .select(`
-                id,
-                name,
-                owner,
-                colour,
-                brand,
-                size,
-                tags,
-                notes,
-                created_at,
-                wardrobe_id
-            `)
-            .eq('wardrobe_id', wardrobeId)
-            .order('created_at', { ascending: false });
+        const { rows: cloths } = await pool.query(
+            `SELECT
+                c.id,
+                c.name,
+                c.owner,
+                c.colour,
+                c.brand,
+                c.size,
+                c.tags,
+                c.notes,
+                c.created_at,
+                whc."wardrobeId" AS wardrobe_id
+             FROM public."WardrobeHasCloth" whc
+             INNER JOIN public."Cloth" c ON c.id = whc."clothId"
+             WHERE whc."wardrobeId" = $1
+             ORDER BY c.created_at DESC`,
+            [wardrobeId]
+        );
 
-        if (clothsInWardrobeError) {
-            console.error('Error al obtener prendas:', clothsInWardrobeError);
-            throw clothsInWardrobeError;
-        }
-
-        // Los datos ya vienen en el formato correcto
-        const formattedCloths = clothsInWardrobe || [];
-
-        // Respuesta exitosa
         return NextResponse.json({
             success: true,
-            wardrobe: {
-                id: wardrobe.id,
-                name: wardrobe.name,
-                location: wardrobe.location
-            },
-            cloths: formattedCloths,
-            totalCloths: formattedCloths.length
+            wardrobe: wardrobeRows[0],
+            cloths,
+            totalCloths: cloths.length
         }, { status: 200 });
 
     } catch (error) {
         console.error('Error al obtener prendas del wardrobe:', error);
-
         return NextResponse.json({
             success: false,
             error: 'Error interno del servidor al obtener las prendas',
-            details: process.env.NODE_ENV === 'development' ? error : undefined
         }, { status: 500 });
     }
 }
