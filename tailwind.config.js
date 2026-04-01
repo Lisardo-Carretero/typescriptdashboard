@@ -11,10 +11,16 @@ module.exports = {
                 fadeIn: {
                     'from': { opacity: '0', transform: 'translateY(-20px)' },
                     'to': { opacity: '1', transform: 'translateY(0)' }
+                },
+                shake: {
+                    '0%, 100%': { transform: 'translateX(0)' },
+                    '25%': { transform: 'translateX(-5px)' },
+                    '75%': { transform: 'translateX(5px)' }
                 }
             },
             animation: {
-                'fadeIn': 'fadeIn 0.3s ease-out forwards'
+                'fadeIn': 'fadeIn 0.3s ease-out forwards',
+                'shake': 'shake 0.5s ease-in-out'
             },
             colors: {
                 purple: {

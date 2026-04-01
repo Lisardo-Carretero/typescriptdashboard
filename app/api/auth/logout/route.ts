@@ -1,12 +1,12 @@
 /**
- * API Route: Obtener información del usuario actual
- * GET /api/auth/me
+ * API Route: Logout de usuario
+ * POST /api/auth/logout
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '../../../../lib/supabaseAuth';
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
     try {
         // Obtener token del header o cookies
         const token = request.headers.get('authorization')?.replace('Bearer ', '') ||
@@ -15,37 +15,36 @@ export async function GET(request: NextRequest) {
         if (!token) {
             return NextResponse.json({
                 success: false,
-                error: 'No autorizado'
-            }, { status: 401 });
+                error: 'No hay sesión activa'
+            }, { status: 400 });
         }
 
-        // Verificar y obtener usuario de Supabase
+        // Cerrar sesión en Supabase
         const supabase = createServerClient();
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+        const { error } = await supabase.auth.signOut();
 
-        if (error || !user) {
+        if (error) {
+            console.error('Error cerrando sesión:', error);
             return NextResponse.json({
                 success: false,
-                error: 'Token inválido'
-            }, { status: 401 });
+                error: 'Error al cerrar sesión'
+            }, { status: 500 });
         }
 
-        // Retornar información del usuario
-        return NextResponse.json({
+        // Crear respuesta y limpiar cookies
+        const response = NextResponse.json({
             success: true,
-            user: {
-                id: user.id,
-                email: user.email,
-                full_name: user.user_metadata?.full_name,
-                avatar_url: user.user_metadata?.avatar_url,
-                email_confirmed: user.email_confirmed_at ? true : false,
-                created_at: user.created_at,
-                last_sign_in_at: user.last_sign_in_at,
-            }
+            message: 'Sesión cerrada exitosamente'
         });
 
+        // Eliminar cookies de sesión
+        response.cookies.delete('sb-access-token');
+        response.cookies.delete('sb-refresh-token');
+
+        return response;
+
     } catch (error) {
-        console.error('Error en API me:', error);
+        console.error('Error en API logout:', error);
         return NextResponse.json({
             success: false,
             error: 'Error interno del servidor'
@@ -59,7 +58,7 @@ export async function OPTIONS() {
         status: 200,
         headers: {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
     });

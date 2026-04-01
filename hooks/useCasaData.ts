@@ -8,6 +8,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect, useMemo } from 'react';
 import supabase from '../lib/supabaseClientCasa';
+import { authUtils } from '../lib/supabaseAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 // Tipos TypeScript
 interface Wardrobe {
@@ -41,6 +43,30 @@ interface Cloth {
     wardrobe_id: number;
 }
 
+// Función utilitaria para hacer peticiones autenticadas
+const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
+    try {
+        const session = await authUtils.getCurrentSession();
+        const token = session?.access_token;
+
+        const headers = {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+            ...options.headers,
+        };
+
+        const response = await fetch(url, {
+            ...options,
+            headers,
+        });
+
+        return response;
+    } catch (error) {
+        console.error('Error en petición autenticada:', error);
+        throw error;
+    }
+};
+
 // Query Keys - Centralizados para consistencia
 export const queryKeys = {
     wardrobes: ['wardrobes'] as const,
@@ -49,23 +75,64 @@ export const queryKeys = {
     cloths: ['cloths'] as const,
     clothsByWardrobe: (wardrobeId: number) => ['cloths', wardrobeId] as const,
     tags: ['tags'] as const,
+    houses: ['houses'] as const,
 };
 
-// Hook para obtener todos los wardrobes
+// Hook para obtener las casas del usuario autenticado
+export const useUserHouses = () => {
+    const { user, loading: authLoading } = useAuth();
+
+    return useQuery({
+        queryKey: queryKeys.houses,
+        queryFn: async (): Promise<any[]> => {
+            try {
+                const response = await makeAuthenticatedRequest('/api/casa/house/get');
+                if (!response.ok) {
+                    console.error('Error en useUserHouses:', response.statusText);
+                    return [] as any[];
+                }
+                const data = await response.json();
+                if (data.success && Array.isArray(data.data)) {
+                    return data.data;
+                }
+                console.error('Respuesta de API no válida para houses:', data);
+                return [] as any[];
+            } catch (error) {
+                console.error('Error en useUserHouses:', error);
+                return [] as any[];
+            }
+        },
+        enabled: !!user && !authLoading, // Solo ejecutar si hay usuario autenticado
+        staleTime: 10 * 60 * 1000, // 10 minutos - las casas cambian menos frecuentemente
+        gcTime: 30 * 60 * 1000, // 30 minutos
+    });
+};
+
+// Hook para obtener todos los wardrobes del usuario autenticado
 export const useWardrobes = () => {
+    const { user, loading: authLoading } = useAuth();
+
     return useQuery({
         queryKey: queryKeys.wardrobes,
         queryFn: async (): Promise<Wardrobe[]> => {
-            const response = await fetch('/api/casa/wardrobe/get');
-            if (!response.ok) {
+            try {
+                const response = await makeAuthenticatedRequest('/api/casa/wardrobe/get');
+                if (!response.ok) {
+                    console.error('Error en useWardrobes:', response.statusText);
+                    return [] as Wardrobe[];
+                }
+                const data = await response.json();
+                if (data.success && Array.isArray(data.data)) {
+                    return data.data;
+                }
+                console.error('Respuesta de API no válida para wardrobes:', data);
+                return [] as Wardrobe[];
+            } catch (error) {
+                console.error('Error en useWardrobes:', error);
                 return [] as Wardrobe[];
             }
-            const data = await response.json();
-            if (data.success && Array.isArray(data.data)) {
-                return data.data;
-            }
-            return [] as Wardrobe[];
         },
+        enabled: !!user && !authLoading, // Solo ejecutar si hay usuario autenticado
         staleTime: 5 * 60 * 1000, // 5 minutos
         gcTime: 10 * 60 * 1000, // 10 minutos
     });
@@ -132,11 +199,13 @@ export const useWardrobesWithCounts = () => {
     };
 };// Hook para obtener todos los tags
 export const useTags = () => {
+    const { user, loading: authLoading } = useAuth();
+
     return useQuery({
         queryKey: queryKeys.tags,
         queryFn: async (): Promise<Tag[]> => {
             try {
-                const response = await fetch('/api/casa/tag/get');
+                const response = await makeAuthenticatedRequest('/api/casa/tag/get');
                 if (!response.ok) {
                     console.error('Error al obtener tags:', response.statusText);
                     return [] as Tag[];
@@ -152,6 +221,7 @@ export const useTags = () => {
                 return [] as Tag[];
             }
         },
+        enabled: !!user && !authLoading, // Solo ejecutar si hay usuario autenticado
         staleTime: 10 * 60 * 1000, // Tags cambian menos frecuentemente
         gcTime: 30 * 60 * 1000, // 30 minutos
     });

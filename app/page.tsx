@@ -13,6 +13,8 @@ const SensorGauge = lazy(() => import("../components/sensorGauge"));
 import AlertConfig from "../components/alertConfig";
 import UserButton from "../components/userButton";
 import LoginForm from "../components/loginForm";
+import RegisterForm from "../components/registerForm";
+import { useAuth } from "../contexts/AuthContext";
 
 const devicePlaceholder = process.env.NEXT_PUBLIC_PLACEHOLDER_DEVICE || null;
 
@@ -22,16 +24,11 @@ const Page = () => {
   const [devices, setDevices] = useState<string[]>([]);
   const [collapsedSensors, setCollapsedSensors] = useState<{ [key: string]: boolean }>({});
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showRegisterModal, setShowRegisterModal] = useState<boolean>(false);
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
   const [groupedData, setGroupedData] = useState<{ [device: string]: string[] }>({});
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false); // Nuevo estado
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Verificar si el usuario está autenticado
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    setIsAuthenticated(!!token); // Si hay un token, el usuario está autenticado
-  }, []);
+  const { user, loading } = useAuth();
 
   // Función para obtener dispositivos únicos desde la API
   const getUniqueDevices = async () => {
@@ -116,6 +113,22 @@ const Page = () => {
 
   const handleLoginClick = () => {
     setShowLoginModal(true);
+    setShowRegisterModal(false);
+  };
+
+  const handleRegisterClick = () => {
+    setShowRegisterModal(true);
+    setShowLoginModal(false);
+  };
+
+  const switchToRegister = () => {
+    setShowLoginModal(false);
+    setShowRegisterModal(true);
+  };
+
+  const switchToLogin = () => {
+    setShowRegisterModal(false);
+    setShowLoginModal(true);
   };
 
   return (
@@ -135,12 +148,35 @@ const Page = () => {
               <h1 className="text-xl font-bold text-[#D9BBA0]">IoT Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4 ">
+              {/* Botón Casa */}
               <button
-                onClick={() => isAuthenticated && (window.location.href = "/game")}
-                disabled={!isAuthenticated} // Deshabilitar si no está autenticado
-                className={`flex items-center justify-center border border-[#D9BBA0] w-10 h-10 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 rounded-full text-white transition-all duration-300 shadow-md hover:shadow-md hover:shadow-[#D9BBA0] ${!isAuthenticated ? "opacity-50 cursor-not-allowed" : ""
+                onClick={() => !!user && (window.location.href = "/casa")}
+                disabled={!user}
+                className={`flex items-center justify-center border border-[#D9BBA0] w-10 h-10 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 rounded-full text-white transition-all duration-300 shadow-md hover:shadow-md hover:shadow-[#D9BBA0] ${!user ? "opacity-50 cursor-not-allowed" : ""
+                  }`}
+                aria-label="Casa Button"
+                title={user ? "Ir a Casa" : "Inicia sesión para acceder"}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-6 h-6"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                </svg>
+              </button>
+
+              {/* Botón Gamepad */}
+              <button
+                onClick={() => !!user && (window.location.href = "/game")}
+                disabled={!user} // Deshabilitar si no está autenticado
+                className={`flex items-center justify-center border border-[#D9BBA0] w-10 h-10 bg-[#6D4941] hover:bg-opacity-100 bg-opacity-90 rounded-full text-white transition-all duration-300 shadow-md hover:shadow-md hover:shadow-[#D9BBA0] ${!user ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 aria-label="Gamepad Button"
+                title={user ? "Ir al Juego" : "Inicia sesión para acceder"}
               >
                 <img src="/Playstation_logo_colour.svg" alt="Gamepad" className="w-6 h-6" />
               </button>
@@ -184,12 +220,12 @@ const Page = () => {
 
             {/* UserButton on the right side */}
             <div className="order-2 md:order-3">
-              <UserButton onLoginClick={handleLoginClick} />
+              <UserButton onLoginClick={handleLoginClick} onRegisterClick={handleRegisterClick} />
             </div>
           </div>
         </header>
 
-        {/* Login modal  */}
+        {/* Login modal */}
         {showLoginModal && (
           <div
             className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
@@ -200,11 +236,26 @@ const Page = () => {
               onClick={(e) => e.stopPropagation()}
               className="animate-fadeIn"
             >
-              <LoginForm onClose={() => setShowLoginModal(false)} />
+              <LoginForm onClose={() => setShowLoginModal(false)} switchToRegister={switchToRegister} />
             </div>
           </div>
-        )
-        }
+        )}
+
+        {/* Register modal */}
+        {showRegisterModal && (
+          <div
+            className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
+            onClick={() => setShowRegisterModal(false)}
+            style={{ animation: 'fadeIn 0.2s ease-out' }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="animate-fadeIn"
+            >
+              <RegisterForm onClose={() => setShowRegisterModal(false)} switchToLogin={switchToLogin} />
+            </div>
+          </div>
+        )}
 
         <div className="h-20"></div>
 

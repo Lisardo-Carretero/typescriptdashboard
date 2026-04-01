@@ -1,11 +1,34 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import supabase from '../../../../../lib/supabaseClientCasa';
+import { createServerClient } from '../../../../../lib/supabaseAuth';
 import { Database } from '../../../../databaseCasa.types';
 
 type Wardrobe = Database['public']['Tables']['Wardrobe']['Row'];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
+        // Verificar autenticación y obtener usuario
+        const token = request.headers.get('authorization')?.replace('Bearer ', '') ||
+            request.cookies.get('sb-access-token')?.value;
+
+        if (!token) {
+            return NextResponse.json(
+                { success: false, error: 'No autorizado' },
+                { status: 401 }
+            );
+        }
+
+        const authSupabase = createServerClient();
+        const { data: { user }, error: authError } = await authSupabase.auth.getUser(token);
+
+        if (authError || !user) {
+            return NextResponse.json(
+                { success: false, error: 'Token inválido' },
+                { status: 401 }
+            );
+        }
+
+        // Obtener wardrobes filtrados por usuario (a través de House)
         const { data: wardrobes, error } = await supabase
             .from('Wardrobe')
             .select(`
@@ -13,12 +36,14 @@ export async function GET() {
                 name,
                 location,
                 house_id,
-                House (
+                House!inner (
                     id,
                     name,
-                    address
+                    address,
+                    user_id
                 )
             `)
+            .eq('House.user_id', parseInt(user.id))
             .order('name', { ascending: true });
 
         if (error) {
@@ -35,8 +60,10 @@ export async function GET() {
         if (!wardrobes || wardrobes.length === 0) {
             return NextResponse.json(
                 {
-                    message: 'No se encontraron wardrobes',
-                    data: []
+                    success: true,
+                    message: 'No se encontraron wardrobes para este usuario',
+                    data: [],
+                    count: 0
                 },
                 { status: 200 }
             );
@@ -64,7 +91,7 @@ export async function GET() {
     } catch (error) {
         console.error('Unexpected error fetching wardrobes:', error);
         return NextResponse.json(
-            { error: 'Error interno del servidor' },
+            { success: false, error: 'Error interno del servidor' },
             { status: 500 }
         );
     }

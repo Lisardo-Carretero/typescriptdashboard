@@ -1,53 +1,39 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import supabase from "../lib/supabaseClient";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "lucide-react";
-import RegisterForm from "./registerForm";
+import { useAuth } from "../contexts/AuthContext";
 
-const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
-    const [user, setUser] = useState<any>(null);
+type UserButtonProps = {
+    onLoginClick?: () => void;
+    onRegisterClick?: () => void;
+};
+
+const UserButton = ({ onLoginClick, onRegisterClick }: UserButtonProps) => {
+    const { user, signOut } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [showRegisterModal, setShowRegisterModal] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            const token = localStorage.getItem("token");
-            if (token) {
-                const response = await fetch("/api/auth/me", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                const result = await response.json();
-                if (response.ok) {
-                    setUser(result.user);
-                } else {
-                    localStorage.removeItem("token");
-                }
-            }
-        };
-        fetchUser();
-    }, []);
-
     const handleLogout = async () => {
-        localStorage.removeItem("token"); // Eliminar el token de localStorage
-        setUser(null);
-        router.refresh();
+        await signOut();
         setMenuOpen(false);
+        router.push('/');
     };
 
     const handleLoginClick = () => {
-        onLoginClick();
+        if (onLoginClick) {
+            onLoginClick();
+        }
         setMenuOpen(false);
     };
 
     const handleRegisterClick = () => {
-        setShowRegisterModal(true);
+        if (onRegisterClick) {
+            onRegisterClick();
+        }
         setMenuOpen(false);
     };
 
@@ -108,21 +94,6 @@ const UserButton = ({ onLoginClick }: { onLoginClick: () => void }) => {
                             </button>
                         </>
                     )}
-                </div>
-            )}
-
-            {showRegisterModal && (
-                <div
-                    className="fixed inset-0 bg-[#2E2A3B]/70 backdrop-blur-sm z-50 flex justify-center items-center p-4"
-                    onClick={() => setShowRegisterModal(false)}
-                    style={{ animation: 'fadeIn 0.2s ease-out' }}
-                >
-                    <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="animate-fadeIn"
-                    >
-                        <RegisterForm onClose={() => setShowRegisterModal(false)} />
-                    </div>
                 </div>
             )}
         </div>

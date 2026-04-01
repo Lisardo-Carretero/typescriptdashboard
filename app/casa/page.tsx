@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../../contexts/AuthContext';
 import AddClothModal from '../../components/casa/AddClothModal';
 import WardrobeGrid from '../../components/casa/WardrobeGrid';
-import { useWardrobes, useTags, useSupabaseRealtime, useTotalClothsCount } from '../../hooks/useCasaData';
+import NoHousesForm from '../../components/casa/NoHousesForm';
+import UserProfileButton from '../../components/UserProfileButton';
+import { useWardrobes, useTags, useSupabaseRealtime, useTotalClothsCount, useUserHouses } from '../../hooks/useCasaData';
 
 interface Tag {
     id: string;
@@ -28,7 +31,11 @@ interface Wardrobe {
 const CasaPage = () => {
     const router = useRouter();
 
+    // Verificar autenticación
+    const { user, loading: authLoading } = useAuth();
+
     // Usar React Query hooks para data fetching optimizado
+    const { data: houses = [], isLoading: loadingHouses } = useUserHouses();
     const { data: wardrobes = [], isLoading: loadingWardrobes, error: wardrobesError } = useWardrobes();
     const { data: availableTags = [], isLoading: loadingTags, error: tagsError } = useTags();
     const { data: totalItems = 0, isLoading: loadingTotal } = useTotalClothsCount();
@@ -64,6 +71,55 @@ const CasaPage = () => {
         console.log(`Prenda añadida exitosamente al wardrobe ${wardrobeId}`);
     };
 
+    // Efecto para redirigir si no hay usuario después de cargar
+    useEffect(() => {
+        if (!authLoading && !user) {
+            console.log('No user found, redirecting to login');
+            router.push('/login');
+        }
+    }, [authLoading, user, router]);
+
+    // Mostrar loading mientras se carga la autenticación o los datos iniciales
+    if (authLoading || loadingHouses) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Cargando tu Casa...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Si no hay usuario, mostrar loading mientras redirige
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Redirigiendo a login...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Mostrar loading mientras se cargan las casas
+    if (loadingHouses) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Cargando tus casas...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Si el usuario no tiene casas, mostrar formulario para crear una
+    if (houses.length === 0) {
+        return <NoHousesForm />;
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
@@ -72,9 +128,23 @@ const CasaPage = () => {
                     <h1 className="text-4xl font-bold text-gray-900 mb-2">
                         🏠 Inventario de Casa
                     </h1>
-                    <p className="text-gray-800 text-lg">
-                        Gestiona y organiza tu ropa con tags inteligentes
-                    </p>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-800 text-lg">
+                                Gestiona y organiza tu ropa con tags inteligentes
+                            </p>
+                            {houses.length > 0 && (
+                                <div className="text-sm text-gray-600 mt-1">
+                                    {houses.length === 1 ? (
+                                        <span>Casa: <strong>{houses[0].name}</strong></span>
+                                    ) : (
+                                        <span>Casas registradas: <strong>{houses.length}</strong></span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <UserProfileButton />
+                    </div>
 
                     {/* Mensaje de error amigable */}
                     {hasErrors && (

@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 import { X, Eye, EyeOff } from "lucide-react";
-import bcrypt from "bcryptjs";
 
-const RegisterForm = ({ onClose }: { onClose: () => void }) => {
+type RegisterFormProps = {
+    onClose: () => void;
+    showClose?: boolean;
+    switchToLogin?: () => void;
+};
+
+const RegisterForm = ({ onClose, showClose = true, switchToLogin }: RegisterFormProps) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -20,33 +25,28 @@ const RegisterForm = ({ onClose }: { onClose: () => void }) => {
         setIsLoading(true);
 
         if (password !== confirmPassword) {
-            setError("Passwords do not match.");
+            setError("Las contraseñas no coinciden.");
             setIsLoading(false);
             return;
-        }
-
-        try {
-            // Hash the password before sending it to the backend
-            const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
-
+        } try {
+            // Send the raw password to the backend; Supabase will hash it securely server-side.
             const response = await fetch('/api/auth/register', {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password: hashedPassword }),
+                body: JSON.stringify({ email, password }),
             });
 
             const result = await response.json();
             if (response.ok) {
-                setSuccess("Registration successful");
+                setSuccess("¡Registro exitoso! Te hemos enviado un email de confirmación.");
                 setTimeout(() => {
                     onClose();
                 }, 1000);
             } else {
-                setError(result.error || "Error registering. Please try again.");
+                setError(result.error || "Error al registrarse. Por favor, inténtalo de nuevo.");
             }
         } catch (err) {
-            setError("Connection error. Please try again later.");
+            setError("Error de conexión. Por favor, inténtalo más tarde.");
         } finally {
             setIsLoading(false);
         }
@@ -54,118 +54,138 @@ const RegisterForm = ({ onClose }: { onClose: () => void }) => {
 
     const handleConfirmPasswordBlur = () => {
         if (password !== confirmPassword) {
-            setError("Passwords do not match.");
+            setError("Las contraseñas no coinciden.");
         } else {
             setError("");
         }
     };
 
     return (
-        <div className="bg-[#49416D] p-6 rounded-lg shadow-xl border border-[#D9BBA0] w-96 relative">
-            <button
-                onClick={onClose}
-                className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
-            >
-                <X size={20} />
-            </button>
+        <div className="w-full max-w-md mx-auto">
+            <div className="relative bg-gradient-to-br from-[#40304a] to-[#594060] rounded-xl p-1 shadow-2xl">
+                <div className="bg-[#1f1724] rounded-lg p-6">
+                    {showClose && (
+                        <button
+                            onClick={onClose}
+                            aria-label="Cerrar formulario"
+                            className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
 
-            <div className="flex items-center justify-center mb-6">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    className="w-8 h-8 text-[#D9BBA0] mr-2"
-                >
-                    <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z" />
-                </svg>
-                <h2 className="text-xl font-semibold text-[#D9BBA0]">IoT Dashboard Register</h2>
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-12 h-12 bg-[#D9BBA0] rounded-md flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-[#2E2A3B]">
+                                <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1 14h2v2h-2v-2zm0-10h2v8h-2V6z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-semibold text-white">Crea tu cuenta</h2>
+                            <p className="text-sm text-gray-300">Regístrate para guardar tus casas y prendas</p>
+                        </div>
+                    </div>
+
+                    {error && (
+                        <div className="bg-red-900/40 border border-red-600 p-3 rounded-md mb-4 text-sm text-white">
+                            {error}
+                        </div>
+                    )}
+
+                    {success && (
+                        <div className="bg-green-900/30 border border-green-500 p-3 rounded-md mb-4 text-sm text-white">
+                            {success}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleRegister} className="flex flex-col gap-4">
+                        <label className="block">
+                            <span className="text-xs text-gray-400">Email</span>
+                            <input
+                                id="email"
+                                type="email"
+                                placeholder="usuario@ejemplo.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="mt-1 w-full rounded-md bg-[#2a2430] border border-[#3b3242] text-white px-3 py-2 placeholder-gray-500 focus:ring-2 focus:ring-[#8b6d66] outline-none transition"
+                                required
+                            />
+                        </label>
+
+                        <label className="block relative">
+                            <span className="text-xs text-gray-400">Contraseña</span>
+                            <input
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="mt-1 w-full rounded-md bg-[#2a2430] border border-[#3b3242] text-white px-3 py-2 placeholder-gray-500 focus:ring-2 focus:ring-[#8b6d66] outline-none transition"
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-2 top-7 text-gray-400 hover:text-white"
+                                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </label>
+
+                        <label className="block relative">
+                            <span className="text-xs text-gray-400">Confirmar contraseña</span>
+                            <input
+                                id="confirmPassword"
+                                type={showConfirmPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                onBlur={handleConfirmPasswordBlur}
+                                className="mt-1 w-full rounded-md bg-[#2a2430] border border-[#3b3242] text-white px-3 py-2 placeholder-gray-500 focus:ring-2 focus:ring-[#8b6d66] outline-none transition"
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-2 top-7 text-gray-400 hover:text-white"
+                                aria-label={showConfirmPassword ? 'Ocultar confirma' : 'Mostrar confirma'}
+                            >
+                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </label>
+
+                        {/* Simple password match indicator */}
+                        {confirmPassword.length > 0 && (
+                            <div className={`text-sm ${password === confirmPassword ? 'text-green-400' : 'text-yellow-400'}`}>
+                                {password === confirmPassword ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden'}
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            className="mt-2 w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#D9BBA0] to-[#cdb59e] text-[#2E2A3B] py-2 px-4 rounded-md font-semibold shadow hover:scale-[1.01] transition-transform disabled:opacity-70"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? 'Registrando...' : 'Crear cuenta'}
+                        </button>
+
+                        <div className="text-center text-sm text-gray-400 mt-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (switchToLogin) return switchToLogin();
+                                    onClose();
+                                    // fallback: go to login page
+                                }}
+                                className="text-[#D9BBA0] hover:text-white underline"
+                            >
+                                ¿Ya tienes cuenta? Inicia sesión
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-
-            {error && (
-                <div className="bg-red-900/30 border border-red-500/50 p-3 rounded-md mb-4 text-sm text-white">
-                    {error}
-                </div>
-            )}
-
-            {success && (
-                <div className="bg-green-900/30 border border-green-500/50 p-3 rounded-md mb-4 text-sm text-white">
-                    {success}
-                </div>
-            )}
-
-            <form onSubmit={handleRegister} className="flex flex-col space-y-4">
-                <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-1">
-                        Email
-                    </label>
-                    <input
-                        id="email"
-                        type="email"
-                        placeholder="user@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="p-3 rounded-md w-full bg-[#2E2A3B] border border-[#D9BBA0]/50 text-white 
-                     placeholder-gray-400 focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent outline-none"
-                        required
-                    />
-                </div>
-
-                <div className="relative">
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-1">
-                        Password
-                    </label>
-                    <input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="p-3 rounded-md w-full bg-[#2E2A3B] border border-[#D9BBA0]/50 text-white 
-                     placeholder-gray-400 focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent outline-none"
-                        required
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
-                    >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                </div>
-
-                <div className="relative">
-                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-200 mb-1">
-                        Confirm Password
-                    </label>
-                    <input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        onBlur={handleConfirmPasswordBlur}
-                        className="p-3 rounded-md w-full bg-[#2E2A3B] border border-[#D9BBA0]/50 text-white 
-                     placeholder-gray-400 focus:ring-2 focus:ring-[#D9BBA0] focus:border-transparent outline-none"
-                        required
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
-                    >
-                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                </div>
-
-                <button
-                    type="submit"
-                    className="bg-[#6D4941] text-white py-3 px-4 rounded-md font-medium hover:bg-[#8A625A] 
-                   focus:outline-none focus:ring-2 focus:ring-[#D9BBA0] transition-colors disabled:opacity-70"
-                    disabled={isLoading}
-                >
-                    {isLoading ? "Registering..." : "Register"}
-                </button>
-            </form>
         </div>
     );
 };

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import QueryProvider from "../lib/queryProvider";
+import { AuthProvider } from "../contexts/AuthContext";
 import "./globals.css";
 
 
@@ -33,7 +34,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <QueryProvider>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </QueryProvider>
         <SpeedInsights />
         <Analytics />

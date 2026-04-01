@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { EmailTemplate } from '../../../components/emailTemplate';
 import { resend } from '../../../lib/resend';
 
-const sender = process.env.ALERT_SENDER_EMAIL || 'default_sender@example.com';
+const sender = 'team@lisardocarretero.com';
 const receiver = process.env.TEST_EMAIL || '';
 const timePeriodMap: { [key: string]: string } = {
     "1h": "hour",
