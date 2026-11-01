@@ -9,27 +9,29 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Faltan variables de entorno de Supabase');
-}
-
 // Cliente para el navegador (client-side)
-export const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-        flowType: 'pkce', // Más seguro para aplicaciones públicas
-    },
-    global: {
-        headers: {
-            'X-Client-Info': 'nextjs-auth'
+export const supabaseAuth = supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true,
+            flowType: 'pkce',
+        },
+        global: {
+            headers: {
+                'X-Client-Info': 'nextjs-auth'
+            }
         }
-    }
-});
+    })
+    : null;
 
 // Cliente para el servidor (server-side) - sin persistencia de sesión
 export const createServerClient = () => {
+    if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Supabase no está configurado');
+    }
+
     return createClient(supabaseUrl, supabaseAnonKey, {
         auth: {
             autoRefreshToken: false,
@@ -62,6 +64,10 @@ export const authUtils = {
     // Obtener usuario actual (solo si hay sesión activa)
     getCurrentUser: async () => {
         try {
+            if (!supabaseAuth) {
+                return null;
+            }
+
             // Primero verificar si hay sesión
             const { data: { session }, error: sessionError } = await supabaseAuth.auth.getSession();
 
@@ -85,6 +91,10 @@ export const authUtils = {
     // Obtener sesión actual
     getCurrentSession: async () => {
         try {
+            if (!supabaseAuth) {
+                return null;
+            }
+
             const { data: { session }, error } = await supabaseAuth.auth.getSession();
             if (error) {
                 console.error('Error obteniendo sesión:', error);
@@ -100,6 +110,10 @@ export const authUtils = {
     // Validar token JWT
     validateToken: async (token: string) => {
         try {
+            if (!supabaseAuth) {
+                return { valid: false, user: null, error: new Error('Supabase no está configurado') };
+            }
+
             const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
             return { valid: !error && !!user, user, error };
         } catch (error) {
@@ -110,6 +124,10 @@ export const authUtils = {
     // Cerrar sesión
     signOut: async () => {
         try {
+            if (!supabaseAuth) {
+                return { success: true };
+            }
+
             const { error } = await supabaseAuth.auth.signOut();
             if (error) throw error;
             return { success: true };

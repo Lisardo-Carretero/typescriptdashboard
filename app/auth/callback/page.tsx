@@ -15,6 +15,11 @@ export default function AuthCallbackPage() {
             try {
                 const supabase = supabaseAuth;
 
+                if (!supabase) {
+                    setError('Supabase no está configurado');
+                    return;
+                }
+
                 // Log para debugging
                 console.log('=== AUTH CALLBACK DEBUG ===');
                 console.log('Full URL:', window.location.href);

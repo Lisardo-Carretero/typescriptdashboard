@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         initializeAuth();
 
         // Escuchar cambios de autenticación
-        const { data: { subscription } } = supabaseAuth.auth.onAuthStateChange(
+        const subscription = supabaseAuth?.auth.onAuthStateChange(
             async (event, session) => {
                 console.log('Auth state change:', event);
 
@@ -110,7 +110,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         );
 
-        return () => subscription.unsubscribe();
+        return () => subscription?.data.subscription.unsubscribe();
     }, []);
 
     // Función de login
