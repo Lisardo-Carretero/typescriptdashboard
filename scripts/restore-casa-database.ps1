@@ -2,6 +2,13 @@ $ErrorActionPreference = 'Stop'
 
 $psql = Get-Command psql -ErrorAction SilentlyContinue
 if (-not $psql) {
+    $installedPsql = Join-Path ${env:ProgramFiles} 'PostgreSQL\16\bin\psql.exe'
+    if (Test-Path $installedPsql) {
+        $psql = Get-Item $installedPsql
+    }
+}
+
+if (-not $psql) {
     throw 'No se encontró psql. Instala PostgreSQL Client y añade su carpeta bin al PATH.'
 }
 
